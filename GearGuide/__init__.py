@@ -1,4 +1,4 @@
-# Initalization for the app
+# Initialization for the app
 
 import os
 
@@ -10,7 +10,7 @@ def create_app(test_config=None):
     
     app.config.from_mapping(
         SECRET_KEY='dev',
-        DATABASE=os.path.join(app.instance_path, 'data.sqlite'),
+        DATABASE=os.path.join(app.instance_path, 'data.sqlite3'),
     )
 
     if test_config is None:
@@ -30,5 +30,8 @@ def create_app(test_config=None):
     @app.route('/fish')
     def fish():
         return '<><'
+
+    from . import database
+    database.startDB()
 
     return app

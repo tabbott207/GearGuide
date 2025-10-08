@@ -2,22 +2,37 @@
 import sqlite3
 from datetime import datetime
 
-import click
-from flask import current_app, g
+from flask import current_app
 
-def get_db():
-    if 'db' not in g:
-        g.db = sqlite3.connect(
-            current_app.config['DATABASE'],
-            detect_types=sqlite3.PARSE_DECLTYPES
-        )
-        g.db.row_factory = sqlite3.Row
+from models import Trip
 
-    return g.db
+TOTAL_TABLES = 6
+
+def startDB():
+    con = sqlite3.connect('GearGuide/data.sqlite3')
+    cur = con.cursor()
+    
+    if len(cur.execute('SELECT name FROM sqlite_master').fetchall()) != TOTAL_TABLES:
+        print('[database.py]: \'data.sqlite3\' is either missing or corrupted.')
+        print('[database.py]: initializing new \'data.sqlite3\'.')
+        initializeDB(cur, con)
+
+def initializeDB(cur: sqlite3.Cursor, con: sqlite3.Connection):
+
+    # Drop tables if they already exists
+    cur.execute('DROP TABLE IF EXISTS user')
+    cur.execute('DROP TABLE IF EXISTS trip')
+    cur.execute('DROP TABLE IF EXISTS friend_request')
+    cur.execute('DROP TABLE IF EXISTS friend_pairing')
+    cur.execute('DROP TABLE IF EXISTS trip_whitelist')
+    cur.execute('DROP TABLE IF EXISTS pack_list_item')
+
+    # Create tables
+    cur.execute('CREATE TABLE user(userID INT, username VARCHAR(31), email VARCHAR(255), passwordHash, profilePicFilename VARCHAR(128))')
+    cur.execute('CREATE TABLE trip(tripID INT, userID INT, name VARCHAR(95), locationZip INT, startDate DATE, endDate DATE)')
+    cur.execute('CREATE TABLE friend_request(user1ID INT, user2ID INT)')
+    cur.execute('CREATE TABLE friend_pairing(user1ID INT, user2ID INT)')
+    cur.execute('CREATE TABLE trip_whitelist(userID INT, tripID INT)')
+    cur.execute('CREATE TABLE pack_list_item(tripID INT, itemName VARCHAR(63), is_packed BOOLEAN)')
 
 
-def close_db(e=None):
-    db = g.pop('db', None)
-
-    if db is not None:
-        db.close()
