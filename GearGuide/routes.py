@@ -32,6 +32,6 @@ def myProfilePage():
 def myFriendsPage():
     return render_template('my-friends.html')
 
-@app.route('/trips/<int:trip-id>')
-def viewTripPage(trip_id):
+@app.route('/trips/<int:id>')
+def viewTripPage(id):
     return render_template('view-trip.html')
