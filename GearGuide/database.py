@@ -4,7 +4,7 @@ from datetime import datetime
 
 from flask import current_app
 
-from models import Trip
+from models import Trip, User
 
 TOTAL_TABLES = 6
 
@@ -28,11 +28,10 @@ def initializeDB(cur: sqlite3.Cursor, con: sqlite3.Connection):
     cur.execute('DROP TABLE IF EXISTS pack_list_item')
 
     # Create tables
-    cur.execute('CREATE TABLE user(userID INT, username VARCHAR(31), email VARCHAR(255), passwordHash, profilePicFilename VARCHAR(128))')
-    cur.execute('CREATE TABLE trip(tripID INT, userID INT, name VARCHAR(95), locationZip INT, startDate DATE, endDate DATE)')
+    cur.execute('CREATE TABLE user(userID INT, username VARCHAR(32), email TEXT, passwordHash TEXT, profilePicFilename TEXT)')
+    cur.execute('CREATE TABLE trip(tripID INT, userID INT, name VARCHAR(96), locationZip INT, startDate DATE, endDate DATE)')
     cur.execute('CREATE TABLE friend_request(user1ID INT, user2ID INT)')
     cur.execute('CREATE TABLE friend_pairing(user1ID INT, user2ID INT)')
     cur.execute('CREATE TABLE trip_whitelist(userID INT, tripID INT)')
-    cur.execute('CREATE TABLE pack_list_item(tripID INT, itemName VARCHAR(63), is_packed BOOLEAN)')
-
+    cur.execute('CREATE TABLE pack_list_item(idID INT, tripID INT, itemName TEXT, is_checked BOOLEAN)')
 
