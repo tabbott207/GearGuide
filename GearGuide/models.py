@@ -1,26 +1,18 @@
-from datetime import datetime
+from typing import Optional
+import sqlalchemy as sa
+import sqlalchemy.orm as so
+from GearGuide import db
 
-class Trip():
+class User(db.Model):
+    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    username: so.Mapped[str] = so.mapped_column(sa.String(64), index=True, unique=True)
+    email: so.Mapped[str] = so.mapped_column(sa.String(120), index=True, unique=True)
+    password_hash: so.Mapped[str] = so.mapped_column(sa.String(256))
+    picture_filename: so.Mapped[Optional[str]] = so.mapped_column(sa.String(128))
 
-    __trip_id = 101
-
-    def __init__(self, name: str, locationZipCode: int, startDate: datetime, endDate: datetime, userID: int):
-        self.tripID = Trip.__trip_id
-        self.userID = userID
-        self.name = name
-        self.locationZipCode = locationZipCode
-        self.startDate = startDate
-        self.endDate = endDate
-        Trip.__trip_id += 1
-
-class User():
-
-    __user_id = 701
-
-    def __init__(self, username: str, email: str, password_hash: str, profile_pic_filename: str):
-        self.userID = User.__user_id
-        self.username = username
-        self.email = email
-        self.password_hash = password_hash
-        self.profile_pic_filename = profile_pic_filename
-        User.__user_id += 1
+    def __repr__(self):
+        return '<User {}>'.format(self.username)
+    
+class Trip(db.Model):
+    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
