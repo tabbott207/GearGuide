@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Friends · {{ app_name or 'GearGuide' }}{% endblock %}
+{% block content %}
+<section class="center-col">
+  <p class="kicker">Social</p>
+  <h1>Friends</h1>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Your Friends</h2>
+      {% if friends and friends|length %}
+        <div class="list">
+          {% for f in friends %}
+            <div class="friend-row">
+              <div class="avatar">{{ (f.name or f)|slice(0,1)|upper }}</div>
+              <div class="vstack">
+                <strong>{{ f.name or f }}</strong>
+                <small class="muted">{{ f.email or '' }}</small>
+              </div>
+              <span class="spacer"></span>
+              <span class="badge">Friend</span>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="helper">No friends added yet.</p>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <h2>Add Friend</h2>
+      <form method="post" action="{{ url_for('main.friends') }}">
+        <div class="field">
+          <label for="friend_identifier">Email or username</label>
+          <input id="friend_identifier" name="friend_identifier" placeholder="friend@example.com">
+        </div>
+        <button class="btn accent" type="submit">Add</button>
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock %}

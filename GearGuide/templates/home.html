@@ -1,7 +1,35 @@
-<!DOCTYPE html>
-<head>
-    <title>Gear Guide</title>
-</head>
-<body>
-    <h1>Gear Guide</h1>
-</body>
+{% extends "base.html" %}
+{% block title %}Home · {{ app_name or 'GearGuide' }}{% endblock %}
+{% block content %}
+<section class="center center-col">
+  <p class="kicker">Welcome</p>
+  <h1>Welcome to {{ app_name or 'GearGuide' }}{% if user_name %}, {{ user_name }}{% endif %}!</h1>
+  <p class="helper">Plan trips, manage packing, and keep your adventures organized.</p>
+
+  <div class="hero-actions" style="margin-top:16px">
+    <a class="btn accent" href="{{ url_for('main.create_trip') }}">Plan a Trip</a>
+    <a class="btn ghost" href="{{ url_for('main.trips') }}">View My Trips</a>
+  </div>
+</section>
+
+<section class="center-col" style="margin-top:28px">
+  <div class="card">
+    <h2>Recent Trips</h2>
+    {% if recent_trips %}
+      <div class="list">
+        {% for t in recent_trips %}
+          <div class="list-row">
+            <div>
+              <strong>{{ t.name }}</strong><br>
+              <small class="muted">{{ t.start_date }} → {{ t.end_date }}</small>
+            </div>
+            <a class="btn ghost" href="{{ url_for('main.trip_detail', trip_id=t.id) }}">Open</a>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="helper">No trips yet. Start by planning one.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
