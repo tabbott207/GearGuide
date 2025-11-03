@@ -4,7 +4,7 @@ from flask import Flask, render_template, current_app
 
 @current_app.route('/home')
 def homePage():
-    return render_template('homepage.html')
+    return render_template('home.html')
 
 @current_app.route('/login')
 def loginPage():
@@ -20,16 +20,16 @@ def createTripPage():
 
 @current_app.route('/trips')
 def myTripsPage():
-    return render_template('my-trips.html')
+    return render_template('trips.html')
 
-@current_app.route('/profile')
+@current_app.route('/account')
 def myProfilePage():
-    return render_template('my-profile.html')
+    return render_template('account.html')
 
 @current_app.route('/friends')
 def myFriendsPage():
-    return render_template('my-friends.html')
+    return render_template('friends.html')
 
 @current_app.route('/trips/<int:id>')
 def viewTripPage(id):
-    return render_template('view-trip.html')
+    return render_template('trip-detail.html')
