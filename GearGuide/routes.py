@@ -22,5 +22,5 @@ def myProfilePage(): return render_template("account.html")
 @bp.route("/friends", endpoint="friends")
 def myFriendsPage(): return render_template("friends.html")
 
-@bp.route("/trips/<int:id>", endpoint="trip_detail")
-def viewTripPage(id): return render_template("trip-detail.html")
+@bp.route("/trips/<int:trip_id>", endpoint="trip_detail")
+def viewTripPage(trip_id): return render_template("trip-detail.html")
