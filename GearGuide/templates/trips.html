@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}My Trips · {{ app_name or 'GearGuide' }}{% endblock %}
+{% block content %}
+<section class="center-col">
+  <p class="kicker">Trips</p>
+  <h1>My Trips</h1>
+
+  <div class="card">
+    {% if trips and trips|length %}
+      <div class="list">
+        {% for t in trips %}
+          <div class="list-row">
+            <div>
+              <strong>{{ t.name }}</strong><br>
+              <small class="muted">{{ t.destination or '-' }}</small><br>
+              <small class="muted">{{ t.start_date }} → {{ t.end_date }}</small>
+            </div>
+            <a class="btn ghost" href="{{ url_for('main.trip_detail', trip_id=t.id) }}">Open trip</a>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="helper">You have no trips yet. <a href="{{ url_for('main.create_trip') }}">Create one</a>.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

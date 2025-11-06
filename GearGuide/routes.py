@@ -1,35 +1,26 @@
-# functions for handling routing the user to it's requested webpage
+from flask import Blueprint, render_template
+bp = Blueprint("main", __name__)
 
-from flask import Flask, render_template, current_app
+@bp.route("/home", endpoint="home")
+def homePage(): return render_template("home.html")
 
-@current_app.route('/home')
-def homePage():
-    return render_template('homepage.html')
+@bp.route("/login", endpoint="login")
+def loginPage(): return render_template("login.html")
 
-@current_app.route('/login')
-def loginPage():
-    return render_template('login.html')
+@bp.route("/signup", endpoint="signup")
+def signupPage(): return render_template("signup.html")
 
-@current_app.route('/signup')
-def signupPage():
-    return render_template('signup.html')
+@bp.route("/create-trip", endpoint="create_trip")
+def createTripPage(): return render_template("create-trip.html")
 
-@current_app.route('/create-trip')
-def createTripPage():
-    return render_template('create-trip.html')
+@bp.route("/trips", endpoint="trips")
+def myTripsPage(): return render_template("trips.html")
 
-@current_app.route('/trips')
-def myTripsPage():
-    return render_template('my-trips.html')
+@bp.route("/account", endpoint="account")
+def myProfilePage(): return render_template("account.html")
 
-@current_app.route('/profile')
-def myProfilePage():
-    return render_template('my-profile.html')
+@bp.route("/friends", endpoint="friends")
+def myFriendsPage(): return render_template("friends.html")
 
-@current_app.route('/friends')
-def myFriendsPage():
-    return render_template('my-friends.html')
-
-@current_app.route('/trips/<int:id>')
-def viewTripPage(id):
-    return render_template('view-trip.html')
+@bp.route("/trips/<int:trip_id>", endpoint="trip_detail")
+def viewTripPage(trip_id): return render_template("trip-detail.html")

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Plan a Trip · {{ app_name or 'GearGuide' }}{% endblock %}
+{% block content %}
+<section class="center-col">
+  <p class="kicker">Plan</p>
+  <h1>Plan a Trip</h1>
+
+  <div class="card">
+    <form method="post" action="{{ url_for('main.create_trip') }}">
+      <div class="field">
+        <label for="name">Trip Name</label>
+        <input id="name" name="name" placeholder="Blue Ridge Weekend" required>
+      </div>
+
+      <div class="field">
+        <label for="destination">Location</label>
+        <input id="destination" name="destination" placeholder="e.g., Charlotte, NC">
+      </div>
+
+      <div class="field">
+        <label>Dates</label>
+        <div style="display:flex; gap:10px">
+          <input type="date" id="start_date" name="start_date" required>
+          <input type="date" id="end_date" name="end_date" required>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="activities">Activities</label>
+        <select id="activities" name="activities" multiple>
+          <option>Hiking</option>
+          <option>Camping</option>
+          <option>Fishing</option>
+          <option>Climbing</option>
+          <option>Kayaking</option>
+        </select>
+        <small class="muted">Hold Ctrl/Cmd to select multiple.</small>
+      </div>
+
+      <div class="field">
+        <label for="notes">Notes</label>
+        <textarea id="notes" name="notes" rows="4" placeholder="Optional details…"></textarea>
+      </div>
+
+      <div class="field">
+        <button class="btn accent" type="submit">Create Trip</button>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

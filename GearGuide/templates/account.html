@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}My Account · {{ app_name or 'GearGuide' }}{% endblock %}
+{% block content %}
+<section class="center-col">
+  <p class="kicker">Account</p>
+  <h1>My Account</h1>
+
+  <div class="card">
+    <form method="post" action="{{ url_for('main.account') }}">
+      <div class="field">
+        <label for="name">Name</label>
+        <input id="name" name="name" value="{{ current_user.name if current_user else user_name or '' }}" placeholder="Your name" required>
+      </div>
+
+      <div class="field">
+        <label for="email">Email</label>
+        <input id="email" name="email" value="{{ current_user.email if current_user else '' }}" placeholder="you@example.com" disabled>
+        <small class="muted">Email is managed by your account and cannot be changed here.</small>
+      </div>
+
+      <div class="field">
+        <button class="btn accent" type="submit">Save</button>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

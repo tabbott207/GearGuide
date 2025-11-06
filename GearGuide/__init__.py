@@ -29,5 +29,9 @@ def create_app(test_config=None):
     @app.route('/fish')
     def fish():
         return '<><'
+    
+    # import and register frontend routes
+    from .routes import bp as gearguide_bp
+    app.register_blueprint(gearguide_bp)
 
     return app

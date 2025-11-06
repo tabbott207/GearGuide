@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}{{ trip.name if trip else 'Trip' }} · {{ app_name or 'GearGuide' }}{% endblock %}
+{% block content %}
+<section class="center-col">
+  <p class="kicker">Trip</p>
+  <h1>{{ trip.name if trip else 'Trip' }}</h1>
+
+  <div class="card">
+    {% if not trip %}
+      <p class="helper">Trip not found.</p>
+    {% else %}
+      <div class="grid">
+        <div class="card">
+          <h2>Overview</h2>
+          <div><strong>Destination:</strong> {{ trip.destination or '-' }}</div>
+          <div><strong>Dates:</strong> {{ trip.start_date }} → {{ trip.end_date }}</div>
+          <div><strong>Activities:</strong> {{ (trip.activities | join(', ')) if trip.activities else '-' }}</div>
+        </div>
+
+        <div class="card">
+          <h2>Members</h2>
+          <ul class="clean">
+            {% for m in trip.members or [] %}
+              <li>{{ m.name or m }}</li>
+            {% endfor %}
+            {% if not trip.members %}<li class="muted">No members</li>{% endif %}
+          </ul>
+        </div>
+
+        <div class="card" style="grid-column:1/-1">
+          <h2>Map & Weather</h2>
+          <div class="map-placeholder">Map / Weather widget placeholder</div>
+          <small class="muted">Backend team can embed a real map or weather block here.</small>
+        </div>
+
+        <div class="card" style="grid-column:1/-1">
+          <h2>Packing List</h2>
+          <ul class="clean">
+            {% set items = trip.packing or ['Backpack','Water bottle','Snacks','First aid kit','Map/Offline maps'] %}
+            {% for item in items %}
+              <li><label><input type="checkbox"> {{ item }}</label></li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
