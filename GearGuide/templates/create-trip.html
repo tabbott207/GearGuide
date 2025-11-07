@@ -6,15 +6,17 @@
   <h1>Plan a Trip</h1>
 
   <div class="card">
-    <form method="post" action="{{ url_for('main.create_trip') }}">
+    <form method="post" action="{{ url_for('main.create_trip') }}" autocomplete="off">
       <div class="field">
         <label for="name">Trip Name</label>
         <input id="name" name="name" placeholder="Blue Ridge Weekend" required>
       </div>
 
-      <div class="field">
+      <div class="field" style="position:relative">
         <label for="destination">Location</label>
-        <input id="destination" name="destination" placeholder="e.g., Charlotte, NC">
+        <input id="destination" name="destination" placeholder="e.g., Charlotte, NC" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false">
+        <!-- suggestions -->
+        <ul id="dest-suggestions" class="suggestions" role="listbox" style="display:none;"></ul>
       </div>
 
       <div class="field">
@@ -23,18 +25,21 @@
           <input type="date" id="start_date" name="start_date" required>
           <input type="date" id="end_date" name="end_date" required>
         </div>
+        <small class="muted">Start and end dates cannot be in the past.</small>
       </div>
 
       <div class="field">
         <label for="activities">Activities</label>
-        <select id="activities" name="activities" multiple>
-          <option>Hiking</option>
-          <option>Camping</option>
-          <option>Fishing</option>
-          <option>Climbing</option>
-          <option>Kayaking</option>
-        </select>
-        <small class="muted">Hold Ctrl/Cmd to select multiple.</small>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <label><input type="checkbox" name="activities" value="Hiking"> Hiking</label>
+          <label><input type="checkbox" name="activities" value="Camping"> Camping</label>
+          <label><input type="checkbox" name="activities" value="Fishing"> Fishing</label>
+          <label><input type="checkbox" name="activities" value="Kayaking"> Kayaking</label>
+          <label><input type="checkbox" name="activities" value="Biking"> Biking</label>
+          <label><input type="checkbox" name="activities" value="Swimming"> Swimming</label>
+          <label><input type="checkbox" name="activities" value="Canoeing"> Canoeing</label>
+          <label><input type="checkbox" name="activities" value="Climbing"> Climbing</label>
+        </div>
       </div>
 
       <div class="field">
@@ -48,4 +53,8 @@
     </form>
   </div>
 </section>
+
+
+
+<script src="{{ url_for('static', filename='js/create-trip.js') }}"></script>
 {% endblock %}
