@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, ForeignKey, String, Date, CheckConstraint, UniqueConstraint
+from sqlalchemy import Column, Integer, ForeignKey, String, Date, CheckConstraint, UniqueConstraint, event, Boolean
 from sqlalchemy.orm import relationship
 from GearGuide import db
 
@@ -11,9 +11,6 @@ class User(db.Model):
     password_hash = Column(String(256), nullable=False)
     pfp_filename = Column(String(250), default='profile_default.png')
 
-    hosted_trips = relationship('Trip', back_populates='host')
-    joined_trips = relationship('TripInvite', back_populates='user', cascade='all, delete-orphan')
-
 class Trip(db.Model):
     __tablename__ = 'trips'
 
@@ -25,11 +22,11 @@ class Trip(db.Model):
 
     __table_args__ = (
         CheckConstraint('end_date > start_date', name='check_start_before_end_date'),
+        CheckConstraint('start_date >= CURRENT_DATE', name='check_start_after_current_date'),
+        CheckConstraint('end_date >= CURRENT_DATE', name='check_end_after_current_date'),
         UniqueConstraint('host_id', 'name', name='unique_trip_name_for_host')
     )
 
-    host = relationship('User', back_populates='hosted_trips')
-    invited_users = relationship('TripInvite', back_populates='trip', cascade='all, delete-orphan')
 
 class TripInvite(db.Model):
     __tablename__ = "trip_invites"
@@ -37,5 +34,34 @@ class TripInvite(db.Model):
     user_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), primary_key=True)
     trip_id = Column(Integer, ForeignKey('trips.id', ondelete='CASCADE'), primary_key=True)
 
-    user = relationship('User', back_populates='invited_users')
-    trip = relationship('Trip', back_populates='joined_trips')
+
+class Friendship(db.Model):
+    __tablename__ = 'friendships'
+
+    id = Column(Integer, primary_key=True)
+    user1_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    user2_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    status = Column(String(20), nullable=False) # PENDING | ACCEPTED | BLOCKED
+
+    __table_args__ = (
+        UniqueConstraint('user1_id', 'user2_id', name='unique_friendship_pairings'),
+        CheckConstraint('user1_id < user2_id', name='check_id1_is_lt_id2'),
+        CheckConstraint('user1_id != user2_id', name='check_user_ids_not_equal')
+    )
+
+class PackListItem(db.Model):
+    __tablename__ = 'pack_list_items'
+
+    id = Column(Integer, primary_key=True)
+    trip_id = Column(Integer, ForeignKey('trips.id', ondelete='CASCADE'), nullable=False)
+    name = Column(String(100), nullable=False)
+    is_packed = Column(Boolean, default=False)
+
+    __table_args__ = (
+        UniqueConstraint('trip_id', 'name', name='unique_item_name_per_trip'),
+    )
+
+@event.listens_for(Friendship, 'before_insert')
+def normalize_user_ids_for_friendships(mapper, connect, target):
+    if target.user1_id > target.user2_id:
+        target.user1_id, target.user2_id = target.user2_id, target.user1_id
