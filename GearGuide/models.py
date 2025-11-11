@@ -1,26 +1,57 @@
-from typing import Optional
-from datetime import datetime
-import sqlalchemy as sa
-import sqlalchemy.orm as so
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, UniqueConstraint, func, event
+from sqlalchemy.orm import relationship
 from GearGuide import db
 
 class User(db.Model):
-    id: so.Mapped[int] = so.mapped_column(primary_key=True)
-    username: so.Mapped[str] = so.mapped_column(sa.String(64), index=True, unique=True)
-    email: so.Mapped[str] = so.mapped_column(sa.String(120), index=True, unique=True)
-    password_hash: so.Mapped[str] = so.mapped_column(sa.String(256))
-    picture_filename: so.Mapped[Optional[str]] = so.mapped_column(sa.String(128))
+    __tablename__ = 'users'
 
-    def __repr__(self):
-        return '<User {}>'.format(self.username)
-    
+    id = Column(Integer, primary_key=True)
+    username = Column(String(80), unique=True, nullable=False)
+
+    # These relationships help navigation
+    friendships = relationship(
+        'Friendship',
+        primaryjoin="or_(User.id==Friendship.user1_id, User.id==Friendship.user2_id)",
+        viewonly=True
+    )
+
+    friends = relationship(
+        'Friends',
+        
+    )
+
+
 class Trip(db.Model):
-    id: so.Mapped[int] = so.mapped_column(primary_key=True)
-    user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
-    trip_name: so.Mapped[str] = so.mapped_column(sa.String(96), index=True)
-    location_zip: so.Mapped[int] = so.mapped_column(sa.Integer, index=True)
-    start_date: so.Mapped[datetime] = so.mapped_column(sa.Date, index=True)
-    end_date: so.Mapped[datetime] = so.mapped_column(sa.Date, index=True)
+    __tablename__ = 'trips'
 
-    def __repr__(self):
-        return '<Trip {}: \'{}\'>'.format(self.id, self.trip_name)
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    trip_name = Column(String(120), nullable=False)
+
+class Friendship(db.Model):
+    __tablename__ = 'friendships'
+
+    user1_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    user2_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    status = Column(String(20), nullable=False, default='pending')  # pending | accepted | blocked
+
+    __table_args__ = (
+        UniqueConstraint('user1_id', 'user2_id', name='uq_friendship_pair'),
+    )
+
+class TripWhitelist(db.Model):
+    __tablename__ = 'trip_whitelist'
+
+    user_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    trip_id = Column(Integer, ForeignKey('trips.id', ondelete='CASCADE'), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint('user_id', 'trip_id', name='uq_tripwhitelist')
+    )
+
+# Normalize IDs before insert — enforce (lower_id, higher_id)
+@event.listens_for(Friendship, 'before_insert')
+def normalize_friendship(mapper, connection, target):
+    if target.user1_id > target.user2_id:
+        target.user1_id, target.user2_id = target.user2_id, target.user1_id
+
