@@ -16,7 +16,13 @@ def create_app():
 
     from GearGuide import models
 
-    # from GearGuide.routes import main_bp
-    # app.register_blueprint(main_bp)
+    # a simple page that fish
+    @app.route('/fish')
+    def fish():
+        return '<><'
+    
+    # import and register frontend routes
+    from .routes import bp as gearguide_bp
+    app.register_blueprint(gearguide_bp)
 
     return app

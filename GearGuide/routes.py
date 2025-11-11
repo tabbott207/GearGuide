@@ -1,39 +1,30 @@
-# functions for handling routing the user to it's requested webpage
-from GearGuide import app
-from flask import render_template
+from flask import Blueprint, render_template,redirect, url_for
+bp = Blueprint("main", __name__)
 
-@app.route('/')
+@bp.route("/", endpoint="index")
 def index():
-    return "index page"
+    return redirect(url_for("main.home"))
 
-@app.route('/home')
-def homePage():
-    return render_template('homepage.html')
+@bp.route("/home", endpoint="home")
+def homePage(): return render_template("home.html")
 
-@app.route('/login')
-def loginPage():
-    return render_template('login.html')
+@bp.route("/login", endpoint="login")
+def loginPage(): return render_template("login.html")
 
-@app.route('/signup')
-def signupPage():
-    return render_template('signup.html')
+@bp.route("/signup", endpoint="signup")
+def signupPage(): return render_template("signup.html")
 
-@app.route('/create-trip')
-def createTripPage():
-    return render_template('create-trip.html')
+@bp.route("/create-trip", endpoint="create_trip")
+def createTripPage(): return render_template("create-trip.html")
 
-@app.route('/trips')
-def myTripsPage():
-    return render_template('my-trips.html')
+@bp.route("/trips", endpoint="trips")
+def myTripsPage(): return render_template("trips.html")
 
-@app.route('/profile')
-def myProfilePage():
-    return render_template('my-profile.html')
+@bp.route("/account", endpoint="account")
+def myProfilePage(): return render_template("account.html")
 
-@app.route('/friends')
-def myFriendsPage():
-    return render_template('my-friends.html')
+@bp.route("/friends", endpoint="friends")
+def myFriendsPage(): return render_template("friends.html")
 
-@app.route('/trips/<int:id>')
-def viewTripPage(id):
-    return render_template('view-trip.html')
+@bp.route("/trips/<int:trip_id>", endpoint="trip_detail")
+def viewTripPage(trip_id): return render_template("trip-detail.html")
