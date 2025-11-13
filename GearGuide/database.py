@@ -332,3 +332,19 @@ def update_pack_item_status(
 
     db.session.commit()
     return True
+
+def remove_pack_item(
+    item_id : int
+) -> bool:
+    """removes an item from the pack list
+        
+    Returns the success of the operation"""
+
+    item = db.session.query(PackListItem).get({'id':item_id})
+
+    if(item is None):
+        return False
+
+    db.session.delete(item)
+    db.session.commit()
+    return True
