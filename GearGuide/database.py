@@ -76,3 +76,14 @@ def add_trip(
     except IntegrityError:
         db.session.rollback()
         return False
+    
+def get_trip(
+    trip_id : int
+) -> Trip | None:
+    
+    trip = db.session.query(Trip).get({'id':trip_id})
+    return trip
+
+def get_users_trips(
+        
+)
