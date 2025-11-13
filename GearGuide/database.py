@@ -299,3 +299,19 @@ def add_pack_item(
     except IntegrityError:
         db.session.rollback()
         return False
+
+def get_pack_list(
+    trip_id : int
+) -> List[PackListItem]:
+    """Gets the pack list items associated with a trip
+    
+    Can return an empty list if none exist"""
+
+    items = (
+        db.session.query(PackListItem)
+        .filter(PackListItem.trip_id == trip_id)
+        .all()
+    )
+
+    return items
+
