@@ -1,0 +1,27 @@
+Users / Auth:
+[ ] add_user(username, email, hashed_password)
+[ ] get_user_by_username(username)
+[X] verify_user(username, password)
+[ ] get_user_profile(user_id)
+
+Trips:
+[ ] add_trip(host_id, name, start_date, end_date)
+[ ] get_trip(trip_id)
+[ ] get_user_trips(user_id)
+
+Trip Invites:
+[ ] invite_user_to_trip(user_id, trip_id)
+[ ] get_trip_invites(trip_id)
+[ ] get_user_invites(user_id)
+
+Friendships:
+[ ] get_user_friends(user_id)
+[ ] add_friend(user1_id, user2_id)
+[ ] update_friend_status(user1_id, user2_id, status)
+Possible addition, not required or anything: remove_friend(user1_id, user2_id)
+
+Pack List Items:
+[ ] add_pack_item(trip_id, name)
+[ ] get_pack_list(trip_id)
+[ ] update_pack_item_status(item_id, is_packed)
+Also a possible addition, not required: remove_pack_item(item_id)
