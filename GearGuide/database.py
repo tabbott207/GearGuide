@@ -127,3 +127,19 @@ def invite_user_to_trip(
     except IntegrityError:
         db.session.rollback()
         return False
+
+def get_users_invited(
+    trip_id : int
+) -> List[User]:
+    """Returns the users who are invited to a trip.
+    
+    Does not return the host and can return an empty list if none are invited"""
+
+    users = (
+        db.session.query(User)
+        .join(TripInvite, User.id == TripInvite.user_id)
+        .filter(TripInvite.trip_id == trip_id)
+        .all()
+    )
+
+    return users 
