@@ -143,3 +143,21 @@ def get_users_invited(
     )
 
     return users 
+
+def get_trips_invited(
+    user_id : int
+) -> List[Trip]:
+    """Returns the trips a user is invited to.
+    
+    Does not return hosted trips and can return an empty list 
+    if they are not invited to any"""
+
+    trips = (
+        db.session.query(Trip)
+        .join(TripInvite, Trip.id == TripInvite.trip_id)
+        .filter(TripInvite.user_id == user_id)
+        .all()
+    )
+
+    return trips
+

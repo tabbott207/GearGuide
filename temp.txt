@@ -11,8 +11,8 @@ Trips:
 
 Trip Invites:
 [X] invite_user_to_trip(user_id, trip_id)
-[ ] get_trip_invites(trip_id)
-[ ] get_user_invites(user_id)
+[X] get_trip_invites(trip_id)
+[X] get_user_invites(user_id)
 
 Friendships:
 [ ] get_user_friends(user_id)
