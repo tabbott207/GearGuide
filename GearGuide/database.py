@@ -179,3 +179,26 @@ def get_users_friends(
 
     return friends
 
+def send_friend_request(
+    user1_id : int,
+    user2_id : int
+) -> bool:
+    """Adds a friend request to the database
+    
+    Returns false if insert fails or users don't exist"""
+
+    user1 = db.session.query(User).get({'id':user1_id})
+    user2 = db.session.query(User).get({'id':user2_id})
+
+    if(user1 is None or user2 is None):
+        return False
+
+    request = Friendship(user1_id=user1_id, user2_id=user2_id, status='PENDING')
+
+    try:
+        db.session.add(request)
+        sb.session.commit()
+        return True
+    except IntegrityError:
+        db.session.rollback()
+        return False

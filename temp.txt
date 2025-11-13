@@ -15,8 +15,8 @@ Trip Invites:
 [X] get_user_invites(user_id)
 
 Friendships:
-[ ] get_users_friends(user_id)
-[ ] send_friend_request(user1_id, user2_id)
+[X] get_users_friends(user_id)
+[X] send_friend_request(user1_id, user2_id)
 [ ] accept_friend_request(user1_id, user2_id)
 [ ] block_user(user1_id, user2_id)
 [ ] remove_friend(user1_id, user2_id)
