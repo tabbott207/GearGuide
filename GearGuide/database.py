@@ -161,3 +161,21 @@ def get_trips_invited(
 
     return trips
 
+def get_users_friends(
+    user_id : int
+) -> List[User]:
+    """Returns the friends of a given user
+    
+    Can return an empty list if the user has no friends"""
+
+    friends = (
+        db.session.query(User)
+        .join(Friendship, or_(Friendship.user1_id == User.id, Friendship.user2_id == User.id))
+        .filter(or_(Friendship.user1_id == user_id, Friendship.user2_id == user_id))
+        .filter(User.id != user_id)
+        .filter(Friendship.status == 'ACCEPTED')
+        .all()
+    )
+
+    return friends
+
