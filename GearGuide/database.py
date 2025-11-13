@@ -202,3 +202,26 @@ def send_friend_request(
     except IntegrityError:
         db.session.rollback()
         return False
+
+def accept_friend_request(
+    user1_id : int,
+    user2_id : int
+) -> bool:
+    """Accepts a pending friend request between two users
+    
+    Returns success of operation"""
+
+    if(user1_id == user2_id):
+        return False
+
+    if(user1_id > user2_id):
+        user1_id, user2_id = user2_id, user1_id
+
+    request = db.session.query(Friendship).get({'user1_id':user1_id, 'user2_id':user2_id})
+
+    if(request is None):
+        return False
+
+    request.status = 'ACCEPTED'
+    db.session.commit()
+    return True
