@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, ForeignKey, String, Date, CheckConstraint, UniqueConstraint, event, Boolean
+from sqlalchemy import Column, Integer, ForeignKey, String, Date, CheckConstraint, UniqueConstraint, event, Boolean, Float
 from sqlalchemy.orm import relationship
 from GearGuide import db
 
@@ -19,6 +19,8 @@ class Trip(db.Model):
     name = Column(String(100), nullable=False)
     start_date = Column(Date, nullable=False)
     end_date = Column(Date, nullable=False)
+    lat = Column(Float, nullable=False)
+    long = Column(Float, nullable=False)
 
     __table_args__ = (
         CheckConstraint('end_date > start_date', name='check_start_before_end_date'),
