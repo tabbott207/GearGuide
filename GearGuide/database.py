@@ -32,6 +32,15 @@ def get_user_by_username(
 ) -> User | None:
     """Gets a user by their username 
     
-    If the user does not exist in the database, it returns None"""
+    Returns None if no username matches in the database"""
     user = db.session.query(User).get({'username':username})
+    return user
+
+def get_user_profile(
+    user_id : int
+) -> User | None:
+    """Gets a user by their ID
+    
+    Returns None if no ID matches in the database"""
+    user = db.session.query(User).get({'id':user_id})
     return user
