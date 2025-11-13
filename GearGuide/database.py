@@ -98,3 +98,32 @@ def get_users_trips(
 
     trips = db.session.query(Trip).filter(Trip.host_id == user_id).all()
     return trips
+
+def invite_user_to_trip(
+    user_id : int,
+    trip_id : int
+) -> bool:
+    """Invites a user to a trip
+    
+    Returns False if insert fails, if user is hosting the trip,
+    or if either the trip or user doesn't exist in the database
+    """
+
+    user = db.session.query(User).get({'id':user_id})
+    trip = db.session.query(Trip).get({'id':trip_id})
+
+    if(user is None or trip is None):
+        return False
+
+    if(user.id == trip.host_id):
+        return False
+
+    invite = TripInvite(user_id=user_id, trip_id=trip_id)
+
+    try:
+        db.session.add(invite)
+        db.session.commit()
+        return True
+    except IntegrityError:
+        db.session.rollback()
+        return False

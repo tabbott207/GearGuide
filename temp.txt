@@ -10,7 +10,7 @@ Trips:
 [X] get_user_trips(user_id)
 
 Trip Invites:
-[ ] invite_user_to_trip(user_id, trip_id)
+[X] invite_user_to_trip(user_id, trip_id)
 [ ] get_trip_invites(trip_id)
 [ ] get_user_invites(user_id)
 
