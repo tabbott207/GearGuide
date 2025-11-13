@@ -8,6 +8,9 @@ def add_user(
     password : str, 
     pfp_filename : str | None = None
 ) -> bool:
+    """Adds a user with the provided arguments
+    
+    Returns false if insert into database fails, otherwise returns true"""
 
     hashed_pass = generate_password_hash(password=password)
 
@@ -23,3 +26,12 @@ def add_user(
     except ValueError:
         db.session.rollback()
         return False
+    
+def get_user_by_username(
+    username : str
+) -> User | None:
+    """Gets a user by their username 
+    
+    If the user does not exist in the database, it returns None"""
+    user = db.session.query(User).get({'username':username})
+    return user
