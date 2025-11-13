@@ -281,3 +281,21 @@ def remove_friend(
     db.session.delete(request)
     db.session.commit()
     return True
+
+def add_pack_item(
+    trip_id : int,
+    name : str
+) -> bool:
+    """Adds a pack item to a trip
+    
+    Returns the success of the operation"""
+
+    item = PackListItem(trip_id=trip_id, name=name)
+
+    try:
+        db.session.add(item)
+        db.session.commit()
+        return True
+    except IntegrityError:
+        db.session.rollback()
+        return False
