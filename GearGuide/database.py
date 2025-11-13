@@ -315,3 +315,20 @@ def get_pack_list(
 
     return items
 
+def update_pack_item_status(
+    item_id : int,
+    is_packed : bool
+) -> bool:
+    """Updates an items status on the pack list
+    
+    Returns the success of the operation"""
+
+    item = db.session.query(PackListItem).get({'id':item_id})
+
+    if(item is None):
+        return False
+
+    item.is_packed = is_packed
+
+    db.session.commit()
+    return True
