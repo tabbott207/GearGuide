@@ -12,7 +12,7 @@ def add_user(
 ) -> bool:
     """Adds a user with the provided arguments
     
-    Returns false if insert into database fails, otherwise returns true"""
+    Returns false if insert into database fails due to a constraint being broken"""
 
     hashed_pass = generate_password_hash(password=password)
 
@@ -59,7 +59,10 @@ def add_trip(
     lat : float,
     long : float
 ) -> bool:
+    """Inserts a trip with the given arguments
     
+    Returns False when insertion fails due to a constraint being broken"""
+
     trip = Trip(
         host_id = host_id,
         name = name,
@@ -80,10 +83,18 @@ def add_trip(
 def get_trip(
     trip_id : int
 ) -> Trip | None:
+    """Gets a trip based on the ID
     
+    Returns None upon no ID matches"""
     trip = db.session.query(Trip).get({'id':trip_id})
     return trip
 
 def get_users_trips(
-        
-)
+    user_id : int   
+) -> List[Trip]:
+    """Gets a list of trips that the user is hosting
+    
+    List will be empty if no trips are being hosted by the user"""
+
+    trips = db.session.query(Trip).filter(Trip.host_id == user_id).all()
+    return trips

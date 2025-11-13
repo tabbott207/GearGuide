@@ -7,7 +7,7 @@ Users / Auth:
 Trips:
 [X] add_trip(host_id, name, start_date, end_date)
 [X] get_trip(trip_id)
-[ ] get_user_trips(user_id)
+[X] get_user_trips(user_id)
 
 Trip Invites:
 [ ] invite_user_to_trip(user_id, trip_id)
