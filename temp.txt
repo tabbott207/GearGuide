@@ -19,7 +19,7 @@ Friendships:
 [X] send_friend_request(user1_id, user2_id)
 [X] accept_friend_request(user1_id, user2_id)
 [X] block_user(user1_id, user2_id)
-[ ] remove_friend(user1_id, user2_id)
+[X] remove_friend(user1_id, user2_id)
 
 Pack List Items:
 [ ] add_pack_item(trip_id, name)

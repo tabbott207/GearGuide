@@ -257,4 +257,27 @@ def block_user(
     else: # there is a friendship in the db
         request.status = 'BLOCKED'
         db.session.commit()
-        return True    
+        return True
+
+def remove_friend(
+    user1_id : int,
+    user2_id : int
+) -> bool:
+    """Removed a friendship
+    
+    Returns the success of the operation"""
+
+    if(user1_id == user2_id):
+        return False
+
+    if(user2_id > user1_id):
+        user1_id, user2_id = user2_id, user1_id
+
+    request = db.session.query(Friendship).get({'user1_id':user1_id, 'user2_id':user2_id})
+
+    if(request is None):
+        return False
+
+    db.session.delete(request)
+    db.session.commit()
+    return True
