@@ -109,8 +109,8 @@ def invite_user_to_trip(
     or if either the trip or user doesn't exist in the database
     """
 
-    user = db.session.query(User).get({'id':user_id})
-    trip = db.session.query(Trip).get({'id':trip_id})
+    user = get_user_profile(user_id)
+    trip = get_trip(trip_id)
 
     if(user is None or trip is None):
         return False
@@ -187,8 +187,8 @@ def send_friend_request(
     
     Returns false if insert fails or users don't exist"""
 
-    user1 = db.session.query(User).get({'id':user1_id})
-    user2 = db.session.query(User).get({'id':user2_id})
+    user1 = get_user_profile(user1_id)
+    user2 = get_user_profile(user2_id)
 
     if(user1 is None or user2 is None):
         return False
@@ -225,3 +225,36 @@ def accept_friend_request(
     request.status = 'ACCEPTED'
     db.session.commit()
     return True
+
+def block_user(
+    user1_id : int,
+    user2_id : int
+) -> bool:
+    """Blocks a users from each other
+    
+    Returns success of operation"""
+
+    if(user1_id == user2_id):
+        return False
+
+    if(user2_id > user1_id):
+        user1_id, user2_id = user2_id, user1_id
+
+    request = db.session.query(Friendship).get({'user1_id':user1_id, 'user2_id':user2_id})
+
+    if(request is None): # there is no friendship in the db
+
+        request = Friendship(user1_id=user1_id, user2_id=user2_id, status='BLOCKED')
+
+        try:
+            db.session.add(request)
+            db.session.commit()
+            return True
+        except IntegrityError:
+            db.session.rollback()
+            return False
+
+    else: # there is a friendship in the db
+        request.status = 'BLOCKED'
+        db.session.commit()
+        return True    
