@@ -1,5 +1,5 @@
 Users / Auth:
-[ ] add_user(username, email, hashed_password)
+[X] add_user(username, email, hashed_password)
 [ ] get_user_by_username(username)
 [X] verify_user(username, password)
 [ ] get_user_profile(user_id)

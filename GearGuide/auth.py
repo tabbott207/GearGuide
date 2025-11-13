@@ -11,8 +11,6 @@ def verify_user(username : str, password : str) -> bool:
 
     if(user is None):
         return False
-    else:
-        user = User(user)
 
     if(user.password_hash == password_hash):
         return True
