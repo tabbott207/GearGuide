@@ -1,29 +1,20 @@
-# Initalization for the app
-
-import os
-
 from flask import Flask
+from GearGuide.config import Config
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 
-def create_app(test_config=None):
-    # create and configure the app
-    app = Flask(__name__, instance_relative_config=True)
-    app.config.from_mapping(
-        SECRET_KEY='dev',
-        DATABASE=os.path.join(app.instance_path, 'flaskr.sqlite'),
-    )
+db = SQLAlchemy()
+migrate = Migrate()
 
-    if test_config is None:
-        # load the instance config, if it exists, when not testing
-        app.config.from_pyfile('config.py', silent=True)
-    else:
-        # load the test config if passed in
-        app.config.from_mapping(test_config)
+def create_app():
+    app = Flask(__name__)
 
-    # ensure the instance folder exists
-    try:
-        os.makedirs(app.instance_path)
-    except OSError:
-        pass
+    app.config.from_object(Config)
+
+    db.init_app(app)
+    migrate.init_app(app, db)
+
+    from GearGuide import models
 
     # a simple page that fish
     @app.route('/fish')
