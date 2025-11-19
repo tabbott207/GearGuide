@@ -14,3 +14,12 @@ build/
 *.egg-info/
 
 *.db
+
+#database debugging
+GearGuide/check_db.py
+
+#local requirements test file
+requirements_test.txt
+
+#local user auth testing
+GearGuide/test_auth.py

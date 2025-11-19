@@ -3,6 +3,8 @@ from werkzeug.security import generate_password_hash
 from datetime import date
 from GearGuide.models import User, Trip, TripInvite, Friendship, PackListItem
 from GearGuide import db
+from typing import List
+from sqlalchemy import or_
 
 def add_user(
     username : str, 
@@ -39,8 +41,8 @@ def get_user_by_username(
     """Gets a user by their username 
     
     Returns None if no username matches in the database"""
-    user = db.session.query(User).get({'username':username})
-    return user
+    # user = db.session.query(User).get({'username':username})
+    return User.query.filter_by(username=username).first()
 
 def get_user_profile(
     user_id : int
@@ -48,16 +50,19 @@ def get_user_profile(
     """Gets a user by their ID
     
     Returns None if no ID matches in the database"""
-    user = db.session.query(User).get({'id':user_id})
-    return user
+    # user = db.session.query(User).get({'id':user_id})
+    return User.query.get(user_id)
 
 def add_trip(
     host_id : int,
     name : str,
+    destination : str,
     start_date : date,
     end_date : date,
     lat : float,
-    long : float
+    lon : float,
+    activities : list[str] | None = None,
+    notes : str | None = None
 ) -> bool:
     """Inserts a trip with the given arguments
     
@@ -69,7 +74,9 @@ def add_trip(
         start_date = start_date,
         end_date = end_date,
         lat = lat,
-        long = long
+        lon = lon,
+        activities = ",".join(activities) if activities else "",
+        notes = notes or ""
     )
 
     try:
@@ -86,8 +93,8 @@ def get_trip(
     """Gets a trip based on the ID
     
     Returns None upon no ID matches"""
-    trip = db.session.query(Trip).get({'id':trip_id})
-    return trip
+    # trip = db.session.query(Trip).get({'id':trip_id})
+    return Trip.query.get(trip_id)
 
 def get_users_trips(
     user_id : int   
@@ -197,7 +204,7 @@ def send_friend_request(
 
     try:
         db.session.add(request)
-        sb.session.commit()
+        db.session.commit()
         return True
     except IntegrityError:
         db.session.rollback()

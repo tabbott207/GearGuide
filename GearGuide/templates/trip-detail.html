@@ -14,8 +14,14 @@
           <h2>Overview</h2>
           <div><strong>Destination:</strong> {{ trip.destination or '-' }}</div>
           <div><strong>Dates:</strong> {{ trip.start_date }} → {{ trip.end_date }}</div>
-          <div><strong>Activities:</strong> {{ (trip.activities | join(', ')) if trip.activities else '-' }}</div>
-        </div>
+          <!-- <div><strong>Activities:</strong> {{ (trip.activities | join(', ')) if trip.activities else '-' }}</div> -->
+          <div><strong>Activities:</strong> 
+            {% if activities %}
+              {{ activities | join(', ') }}
+            {% else %}
+              -
+            {% endif %}
+          </div>
 
         <div class="card">
           <h2>Members</h2>
