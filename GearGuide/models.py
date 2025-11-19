@@ -1,8 +1,10 @@
-from sqlalchemy import Column, Integer, ForeignKey, String, Date, CheckConstraint, UniqueConstraint, event, Boolean, Float
+from sqlalchemy import Column, Integer, ForeignKey, String, Date, CheckConstraint, UniqueConstraint, event, Boolean, Float, Text
 from sqlalchemy.orm import relationship
-from GearGuide import db
+#from GearGuide import db
+from . import db
+from flask_login import UserMixin as userMixin
 
-class User(db.Model):
+class User(db.Model, userMixin):
     __tablename__ = 'users'
 
     id = Column(Integer, primary_key=True)
@@ -20,7 +22,11 @@ class Trip(db.Model):
     start_date = Column(Date, nullable=False)
     end_date = Column(Date, nullable=False)
     lat = Column(Float, nullable=False)
-    long = Column(Float, nullable=False)
+    lon = Column(Float, nullable=False)
+    destination = Column(String(255), nullable=False)
+    activities = Column(Text, nullable=True)  # Planning to use comma-separated list of activities, or json, [change later]
+    notes = Column(Text, nullable=True)
+
 
     __table_args__ = (
         CheckConstraint('end_date > start_date', name='check_start_before_end_date'),

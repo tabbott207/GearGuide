@@ -3,7 +3,11 @@ name = "gear-guide"
 version = "0.1.0"
 dependencies = [
     "flask == 3.1.2",
-    "python_dotenv == 1.2.1",
+    "python-dotenv == 1.2.1",
     "flask-sqlalchemy == 3.1.1",
-    "flask-migrate == 4.1.0"
+    "flask-migrate == 4.1.0",
+    "flask-login == 0.6.3",
+    "mysqlclient == 2.2.7",
+    "requests == 2.32.5"
+
 ]
