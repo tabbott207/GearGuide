@@ -3,6 +3,7 @@ from flask import Blueprint, render_template,redirect, url_for, request, flash
 from . import db
 from .models import User, Trip
 from .auth import verify_user
+from database import send_friend_request, get_users_friends, accept_friend_request, remove_friend
 from werkzeug.security import generate_password_hash, check_password_hash   
 from flask_login import login_user, logout_user, current_user, login_required
 import requests
@@ -36,7 +37,39 @@ def myTripsPage():
 def myProfilePage(): return render_template("account.html")
 
 @bp.route("/friends", endpoint="friends")
-def myFriendsPage(): return render_template("friends.html")
+def myFriendsPage():
+
+    if(request.method == "POST"):
+
+        friend_identifier = request.form.get("friend_identifier")
+
+        if(friend_identifier is str and friend_identifier != ''):
+
+            user = None
+
+            if('@' in friend_identifier):
+                user = User.query.get({'email':friend_identifier})
+            else:
+                user = User.query.get({'username':friend_identifier})
+
+            if(user is not None):
+                send_friend_request(user.id, current_user.id)
+
+        friend_request_id = request.form.get("friend_request_id")
+        friend_request_status = request.form.get("friend_request_status")
+
+        if(friend_request_id is not None 
+           and friend_request_status is not None
+        ):
+            if(friend_request_id != ""):
+                if(friend_request_status == "ACCECPT"):
+                    accept_friend_request(int(friend_request_id), current_user.id)
+                if(friend_request_status == "DENY"):
+                    remove_friend(int(friend_request_id), current_user.id)
+
+    friends = get_users_friends(current_user.id)
+
+    return render_template("friends.html", friends=friends)
 
 @bp.route("/trips/<int:trip_id>", endpoint="trip_detail")
 @login_required
