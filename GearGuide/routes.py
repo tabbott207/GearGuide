@@ -3,7 +3,7 @@ from flask import Blueprint, render_template,redirect, url_for, request, flash
 from . import db
 from .models import User, Trip
 from .auth import verify_user
-from database import send_friend_request, get_users_friends, accept_friend_request, remove_friend
+from database import send_friend_request, get_users_friends, accept_friend_request, remove_friend, invite_user_to_trip
 from werkzeug.security import generate_password_hash, check_password_hash   
 from flask_login import login_user, logout_user, current_user, login_required
 import requests
@@ -73,11 +73,26 @@ def myFriendsPage():
 
 @bp.route("/trips/<int:trip_id>", endpoint="trip_detail")
 @login_required
-def viewTripPage(trip_id): 
+def viewTripPage(trip_id):
+
     trip = Trip.query.filter_by(id=trip_id, host_id=current_user.id).first()
     if not trip:
         flash("Trip not found, or you do not have permission to view it.", "danger")
         return redirect(url_for("main.trips"))
+
+    if(request.method == "POST"):
+        user_to_invite = request.form.get("user_to_invite")
+
+    if(user_to_invite is str and user_to_invite != ''):
+        user = None
+
+        if('@' in user_to_invite):
+            user = User.query.get({'email':user_to_invite})
+        else:
+            user = User.query.get({'username':user_to_invite})
+
+        if(user is not None):
+            invite_user_to_trip(user.id, trip.id)
     
     activities = trip.activities.split(",") if trip.activities else []
     
