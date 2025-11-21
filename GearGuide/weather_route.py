@@ -1,65 +1,86 @@
-from flask import Flask, request, jsonify
-import app 
+from flask import Blueprint, request, jsonify
+import requests
 
-@app.route("/weather", method=["GET"])
+# National Weather Service requires a User-Agent
+NWS_HEADERS = {
+    "User-Agent": "GearGuideApp (contact@example.com)",
+    "Accept": "application/geo+json",
+}
+
+# Blueprint so it can be registered in create_app()
+bp = Blueprint("weather", __name__)
+
+
+@bp.route("/weather", methods=["GET"])
 def weather():
-  #/ latitude and longitude requests
-  lat = requests.args.ge("Lat", type=float)
-  lon = requests.args.get("Lon", type=float)
+    """
+    Example: /weather?lat=35.2271&lon=-80.8431
+    """
 
-  if lat is None or lon is None:
-    return jsonify({"error": "lat and lon query parameters are required"}), 400
+    # latitude and longitude from query parameters
+    lat = request.args.get("lat", type=float)
+    lon = request.args.get("lon", type=float)
 
-try:
-  points_url = f"https://api.weather.gov/points/{lat},{lon}"
-  points_res = requests.get(points_url, headers=NWS_HEADERS, timeout=10)
+    if lat is None or lon is None:
+        return jsonify({"error": "lat and lon query parameters are required"}), 400
 
-  if points_res.status_code != 200:
-  return jsonify({
-      "error": "NWS points lookup failed",
-      "details": points_res.text
-    }), points_res.status.code
+    try:
+        # 1) Look up the grid point from NWS
+        points_url = f"https://api.weather.gov/points/{lat},{lon}"
+        points_res = requests.get(points_url, headers=NWS_HEADERS, timeout=10)
 
-  points_data = points_res.json()
-  forecast_url = points_data["properties"]["forecast"]
+        if points_res.status_code != 200:
+            return jsonify(
+                {
+                    "error": "NWS points lookup failed",
+                    "details": points_res.text,
+                }
+            ), points_res.status_code
 
-  forecast_res = requests.get(forecast_url, headers=NWS_HEADERS, timeout=10)
-  if forecast_res.status_code != 200:
-      return jsonify({
-          "error": "NWS forecast fetch failed",
-          "details": forecast_res.text
-      }), forecast_res
+        points_data = points_res.json()
+        forecast_url = points_data["properties"]["forecast"]
 
-  forecast_data = forecast_res.json()
-  periods = forecast_data["properties"]["periods"]
+        # 2) Fetch forecast for that gridpoint
+        forecast_res = requests.get(forecast_url, headers=NWS_HEADERS, timeout=10)
+        if forecast_res.status_code != 200:
+            return jsonify(
+                {
+                    "error": "NWS forecast fetch failed",
+                    "details": forecast_res.text,
+                }
+            ), forecast_res.status_code
 
-  simplified = [
-      {
-          "name": p["name"],
-          "startTime": p["startTime"],
-          "endTime": p["endTime"],
-          "isDaytime": p["isDaytime"],
-          "isNighttime": p["isNighttime"],
-          "temperature": p["temperature"],
-          "temperatureUnit": p["temperatureUnit"],
-          "windSpeed": p["windSpeed"],
-          "windDirection": p["windDirection"],
-          "shortForecast": p["shortForecast"],
-          "detailedForecast": p["detailedForecast"],
-    }
-    for p in periods
-  ]
+        forecast_data = forecast_res.json()
+        periods = forecast_data["properties"]["periods"]
 
-  return jsonify({
-      "Lat": lat,
-      "Lon": lon,
-      "forecast": simplified
-  })
+        # 3) Simplify periods down to fields you care about
+        simplified = [
+            {
+                "name": p.get("name"),
+                "startTime": p.get("startTime"),
+                "endTime": p.get("endTime"),
+                "isDaytime": p.get("isDaytime"),
+                "temperature": p.get("temperature"),
+                "temperatureUnit": p.get("temperatureUnit"),
+                "windSpeed": p.get("windSpeed"),
+                "windDirection": p.get("windDirection"),
+                "shortForecast": p.get("shortForecast"),
+                "detailedForecast": p.get("detailedForecast"),
+            }
+            for p in periods
+        ]
 
-  except KeyError:
-      return jsonify({"error": "Unexpected NWS response format"}), 500
-  except requests.RequestException as e:
-      return jsonify({"error": f"Error contacting NWS API: {e}"}), 502
+        return jsonify(
+            {
+                "lat": lat,
+                "lon": lon,
+                "forecast": simplified,
+            }
+        )
 
-if __name__ == "__main__":
-    app.run(debug=True)
+    except KeyError:
+        # If NWS changes their response format or something is missing
+        return jsonify({"error": "Unexpected NWS response format"}), 500
+    except requests.RequestException as e:
+        # Network / HTTP errors
+        return jsonify({"error": f"Error contacting NWS API: {e}"}), 502
