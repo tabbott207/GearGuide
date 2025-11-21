@@ -279,28 +279,26 @@ def block_user(
         db.session.commit()
         return True
 
-def remove_friend(
-    user1_id : int,
-    user2_id : int
-) -> bool:
-    """Removed a friendship
-    
-    Returns the success of the operation"""
+def remove_friend(user1_id, user2_id):
+    """
+    Remove/deny a friendship between user1 and user2, regardless of who
+    originally sent the request. Works for both pending and accepted friendships.
+    """
+    friendship = (
+        db.session.query(Friendship)
+        .filter(
+            ((Friendship.user1_id == user1_id) & (Friendship.user2_id == user2_id))
+            | ((Friendship.user1_id == user2_id) & (Friendship.user2_id == user1_id))
+        )
+        .first()
+    )
 
-    if(user1_id == user2_id):
-        return False
+    if friendship is None:
+        # nothing to remove
+        return
 
-    if(user2_id > user1_id):
-        user1_id, user2_id = user2_id, user1_id
-
-    request = db.session.query(Friendship).get({'user1_id':user1_id, 'user2_id':user2_id})
-
-    if(request is None):
-        return False
-
-    db.session.delete(request)
+    db.session.delete(friendship)
     db.session.commit()
-    return True
 
 def add_pack_item(
     trip_id : int,

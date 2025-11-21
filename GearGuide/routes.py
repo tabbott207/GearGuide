@@ -47,22 +47,20 @@ def myProfilePage(): return render_template("account.html")
 @login_required
 def myFriendsPage():
     if request.method == "POST":
-        # 1) Handle adding a friend by email/username
+        # 1) Add friend by email/username
         friend_identifier = request.form.get("friend_identifier", "").strip()
 
         if friend_identifier:
             user = None
-
             if "@" in friend_identifier:
                 user = User.query.filter_by(email=friend_identifier).first()
             else:
                 user = User.query.filter_by(username=friend_identifier).first()
 
             if user is not None:
-                # keep using your existing helper
                 send_friend_request(user.id, current_user.id)
 
-        # 2) Handle accepting / denying a pending request
+        # 2) Accept / deny pending friend request
         friend_request_id = request.form.get("friend_request_id", "").strip()
         friend_request_status = request.form.get("friend_request_status", "").strip()
 
@@ -74,17 +72,26 @@ def myFriendsPage():
 
             if other_user_id is not None:
                 status_upper = friend_request_status.upper()
-
-                # Use the spelling you want the form to send: "ACCPET" / "DENY"
                 if status_upper == "ACCPET":
                     accept_friend_request(other_user_id, current_user.id)
                 elif status_upper == "DENY":
                     remove_friend(other_user_id, current_user.id)
 
-    # Existing friends
+        # 3) Remove an existing friend
+        friend_remove_id = request.form.get("friend_remove_id", "").strip()
+
+        if friend_remove_id:
+            try:
+                other_user_id = int(friend_remove_id)
+            except ValueError:
+                other_user_id = None
+
+            if other_user_id is not None:
+                # use current_user.id + other_user_id; remove_friend can be symmetric
+                remove_friend(current_user.id, other_user_id)
+
     friends = get_users_friends(current_user.id)
 
-    # NEW: inline query for pending friend requests – no database.py changes
     pending_requests = (
         db.session.query(User)
         .join(
