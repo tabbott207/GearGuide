@@ -35,4 +35,8 @@ def create_app():
     from .routes import bp as gearguide_bp
     app.register_blueprint(gearguide_bp)
 
+    
+    from .weather_route import bp as weather_bp
+    app.register_blueprint(weather_bp)
+
     return app
