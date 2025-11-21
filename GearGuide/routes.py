@@ -3,7 +3,13 @@ from flask import Blueprint, render_template,redirect, url_for, request, flash
 from . import db
 from .models import User, Trip
 from .auth import verify_user
-from database import send_friend_request, get_users_friends, accept_friend_request, remove_friend, invite_user_to_trip
+from .database import (
+    send_friend_request,
+    get_users_friends,
+    accept_friend_request,
+    remove_friend,
+    invite_user_to_trip,
+)
 from werkzeug.security import generate_password_hash, check_password_hash   
 from flask_login import login_user, logout_user, current_user, login_required
 import requests
@@ -36,67 +42,72 @@ def myTripsPage():
 @bp.route("/account", endpoint="account")
 def myProfilePage(): return render_template("account.html")
 
-@bp.route("/friends", endpoint="friends")
+@bp.route("/friends", methods=["GET", "POST"], endpoint="friends")
+@login_required
 def myFriendsPage():
+    if request.method == "POST":
+        # Add a new friend by identifier (email or username)
+        friend_identifier = request.form.get("friend_identifier", "").strip()
 
-    if(request.method == "POST"):
-
-        friend_identifier = request.form.get("friend_identifier")
-
-        if(friend_identifier is str and friend_identifier != ''):
-
+        if friend_identifier:
             user = None
 
-            if('@' in friend_identifier):
-                user = User.query.get({'email':friend_identifier})
+            if "@" in friend_identifier:
+                user = User.query.filter_by(email=friend_identifier).first()
             else:
-                user = User.query.get({'username':friend_identifier})
+                user = User.query.filter_by(username=friend_identifier).first()
 
-            if(user is not None):
+            if user is not None:
+                # keep argument order same as your original function call
                 send_friend_request(user.id, current_user.id)
 
-        friend_request_id = request.form.get("friend_request_id")
-        friend_request_status = request.form.get("friend_request_status")
+        # Handle friend request accept / deny
+        friend_request_id = request.form.get("friend_request_id", "").strip()
+        friend_request_status = request.form.get("friend_request_status", "").strip()
 
-        if(friend_request_id is not None 
-           and friend_request_status is not None
-        ):
-            if(friend_request_id != ""):
-                if(friend_request_status == "ACCECPT"):
-                    accept_friend_request(int(friend_request_id), current_user.id)
-                if(friend_request_status == "DENY"):
-                    remove_friend(int(friend_request_id), current_user.id)
+        if friend_request_id and friend_request_status:
+            try:
+                fr_id = int(friend_request_id)
+            except ValueError:
+                fr_id = None
+
+            if fr_id is not None:
+                status_upper = friend_request_status.upper()
+                if status_upper == "ACCECPT":  # matches your current spelling
+                    accept_friend_request(fr_id, current_user.id)
+                elif status_upper == "DENY":
+                    remove_friend(fr_id, current_user.id)
 
     friends = get_users_friends(current_user.id)
-
     return render_template("friends.html", friends=friends)
 
-@bp.route("/trips/<int:trip_id>", endpoint="trip_detail")
+@bp.route("/trips/<int:trip_id>", methods=["GET", "POST"], endpoint="trip_detail")
 @login_required
 def viewTripPage(trip_id):
-
+    # Only let the host view their own trip
     trip = Trip.query.filter_by(id=trip_id, host_id=current_user.id).first()
     if not trip:
         flash("Trip not found, or you do not have permission to view it.", "danger")
         return redirect(url_for("main.trips"))
 
-    if(request.method == "POST"):
-        user_to_invite = request.form.get("user_to_invite")
+    if request.method == "POST":
+        user_to_invite = request.form.get("user_to_invite", "").strip()
 
-    if(user_to_invite is str and user_to_invite != ''):
-        user = None
+        if user_to_invite:
+            # find user by email or username
+            if "@" in user_to_invite:
+                user = User.query.filter_by(email=user_to_invite).first()
+            else:
+                user = User.query.filter_by(username=user_to_invite).first()
 
-        if('@' in user_to_invite):
-            user = User.query.get({'email':user_to_invite})
-        else:
-            user = User.query.get({'username':user_to_invite})
+            if user:
+                invite_user_to_trip(user.id, trip.id)
+                flash(f"Invited {user.username} to this trip.", "success")
+            else:
+                flash("User not found.", "danger")
 
-        if(user is not None):
-            invite_user_to_trip(user.id, trip.id)
-    
     activities = trip.activities.split(",") if trip.activities else []
-    
-    return render_template("trip-detail.html", trip = trip, activities = activities)
+    return render_template("trip-detail.html", trip=trip, activities=activities)
 
 
 
