@@ -4,18 +4,19 @@ from . import db
 from .models import User, Trip
 from .auth import verify_user
 from .database import (
+    User,
+    Friendship,
     send_friend_request,
-    get_users_friends,
     accept_friend_request,
     remove_friend,
-    invite_user_to_trip,
+    get_users_friends,
 )
 from werkzeug.security import generate_password_hash, check_password_hash   
 from flask_login import login_user, logout_user, current_user, login_required
 import requests
 from datetime import datetime  
 from sqlalchemy.exc import IntegrityError
-# from sqlalchemy import or_
+from sqlalchemy import or_
 #from GearGuide.database import add_user, get_user_by_username
 
 
@@ -46,7 +47,7 @@ def myProfilePage(): return render_template("account.html")
 @login_required
 def myFriendsPage():
     if request.method == "POST":
-        # Add a new friend by identifier (email or username)
+        # 1) Handle adding a friend by email/username
         friend_identifier = request.form.get("friend_identifier", "").strip()
 
         if friend_identifier:
@@ -58,28 +59,57 @@ def myFriendsPage():
                 user = User.query.filter_by(username=friend_identifier).first()
 
             if user is not None:
-                # keep argument order same as your original function call
+                # keep using your existing helper
                 send_friend_request(user.id, current_user.id)
 
-        # Handle friend request accept / deny
+        # 2) Handle accepting / denying a pending request
         friend_request_id = request.form.get("friend_request_id", "").strip()
         friend_request_status = request.form.get("friend_request_status", "").strip()
 
         if friend_request_id and friend_request_status:
             try:
-                fr_id = int(friend_request_id)
+                other_user_id = int(friend_request_id)
             except ValueError:
-                fr_id = None
+                other_user_id = None
 
-            if fr_id is not None:
+            if other_user_id is not None:
                 status_upper = friend_request_status.upper()
-                if status_upper == "ACCECPT":  # matches your current spelling
-                    accept_friend_request(fr_id, current_user.id)
-                elif status_upper == "DENY":
-                    remove_friend(fr_id, current_user.id)
 
+                # Use the spelling you want the form to send: "ACCPET" / "DENY"
+                if status_upper == "ACCPET":
+                    accept_friend_request(other_user_id, current_user.id)
+                elif status_upper == "DENY":
+                    remove_friend(other_user_id, current_user.id)
+
+    # Existing friends
     friends = get_users_friends(current_user.id)
-    return render_template("friends.html", friends=friends)
+
+    # NEW: inline query for pending friend requests – no database.py changes
+    pending_requests = (
+        db.session.query(User)
+        .join(
+            Friendship,
+            or_(
+                Friendship.user1_id == User.id,
+                Friendship.user2_id == User.id,
+            ),
+        )
+        .filter(
+            or_(
+                Friendship.user1_id == current_user.id,
+                Friendship.user2_id == current_user.id,
+            )
+        )
+        .filter(User.id != current_user.id)
+        .filter(Friendship.status == "PENDING")
+        .all()
+    )
+
+    return render_template(
+        "friends.html",
+        friends=friends,
+        pending_requests=pending_requests,
+    )
 
 @bp.route("/trips/<int:trip_id>", methods=["GET", "POST"], endpoint="trip_detail")
 @login_required

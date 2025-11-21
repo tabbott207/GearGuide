@@ -210,28 +210,41 @@ def send_friend_request(
         db.session.rollback()
         return False
 
-def accept_friend_request(
-    user1_id : int,
-    user2_id : int
-) -> bool:
-    """Accepts a pending friend request between two users
-    
-    Returns success of operation"""
+def accept_friend_request(user1_id, user2_id):
+    """
+    Accept a friend request between user1 and user2.
+    user1_id: the id of the user who originally sent the request
+    user2_id: the id of the user who is accepting the request
+    """
+    friendship = (
+        db.session.query(Friendship)
+        .filter_by(user1_id=user1_id, user2_id=user2_id)
+        .first()
+    )
 
-    if(user1_id == user2_id):
-        return False
+    if friendship is None:
+        # nothing to accept
+        return
 
-    if(user1_id > user2_id):
-        user1_id, user2_id = user2_id, user1_id
-
-    request = db.session.query(Friendship).get({'user1_id':user1_id, 'user2_id':user2_id})
-
-    if(request is None):
-        return False
-
-    request.status = 'ACCEPTED'
+    friendship.status = "ACCEPTED"
     db.session.commit()
-    return True
+
+
+def remove_friend(user1_id, user2_id):
+    """
+    Remove/deny a friendship between user1 and user2.
+    """
+    friendship = (
+        db.session.query(Friendship)
+        .filter_by(user1_id=user1_id, user2_id=user2_id)
+        .first()
+    )
+
+    if friendship is None:
+        return
+
+    db.session.delete(friendship)
+    db.session.commit()
 
 def block_user(
     user1_id : int,
