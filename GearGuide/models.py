@@ -24,12 +24,12 @@ class Trip(db.Model):
     lat = Column(Float, nullable=False)
     lon = Column(Float, nullable=False)
     destination = Column(String(255), nullable=False)
-    activities = Column(Text, nullable=True)  # Planning to use comma-separated list of activities, or json, [change later]
+    activities = Column(Text, nullable=True)
     notes = Column(Text, nullable=True)
 
 
     __table_args__ = (
-        CheckConstraint('end_date > start_date', name='check_start_before_end_date'),
+        CheckConstraint('end_date >= start_date', name='check_start_before_end_date'),
         CheckConstraint('start_date >= CURRENT_DATE', name='check_start_after_current_date'),
         CheckConstraint('end_date >= CURRENT_DATE', name='check_end_after_current_date'),
         UniqueConstraint('host_id', 'name', name='unique_trip_name_for_host')
@@ -41,6 +41,7 @@ class TripInvite(db.Model):
 
     user_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), primary_key=True)
     trip_id = Column(Integer, ForeignKey('trips.id', ondelete='CASCADE'), primary_key=True)
+    accepted = Column(Boolean, nullable=False, default=False)
 
 
 class Friendship(db.Model):
@@ -49,12 +50,14 @@ class Friendship(db.Model):
     id = Column(Integer, primary_key=True)
     user1_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     user2_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
-    status = Column(String(20), nullable=False) # PENDING | ACCEPTED | BLOCKED
+    status = Column(String(20), nullable=False)  # PENDING | ACCEPTED | BLOCKED
+
+    initiator_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=True)
 
     __table_args__ = (
         UniqueConstraint('user1_id', 'user2_id', name='unique_friendship_pairings'),
         CheckConstraint('user1_id < user2_id', name='check_id1_is_lt_id2'),
-        CheckConstraint('user1_id != user2_id', name='check_user_ids_not_equal')
+        CheckConstraint('user1_id != user2_id', name='check_user_ids_not_equal'),
     )
 
 class PackListItem(db.Model):

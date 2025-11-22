@@ -6,19 +6,37 @@
   <h1>Friends</h1>
 
   <div class="grid">
+    <!-- Your Friends -->
     <div class="card">
       <h2>Your Friends</h2>
       {% if friends and friends|length %}
         <div class="list">
           {% for f in friends %}
-            <div class="friend-row">
-              <div class="avatar">{{ (f.name or f)|slice(0,1)|upper }}</div>
+            {% set label = f.name or f.username or f.email or '' %}
+            <div class="friend-row" style="flex-wrap: wrap;">
+              <div class="avatar">
+                {{ (label[0]|upper) if label else 'F' }}
+              </div>
+
               <div class="vstack">
-                <strong>{{ f.name or f }}</strong>
+                <strong>{{ label }}</strong>
                 <small class="muted">{{ f.email or '' }}</small>
               </div>
+
               <span class="spacer"></span>
-              <span class="badge">Friend</span>
+
+              <div style="display:flex; gap:0.5rem; align-items:center; margin-top:0.25rem;">
+                <span class="badge">Friend</span>
+
+                <form method="post"
+                      action="{{ url_for('main.friends') }}"
+                      style="margin:0;">
+                  <input type="hidden" name="friend_remove_id" value="{{ f.id }}">
+                  <button class="btn ghost" type="submit">
+                    Remove
+                  </button>
+                </form>
+              </div>
             </div>
           {% endfor %}
         </div>
@@ -27,6 +45,53 @@
       {% endif %}
     </div>
 
+    <!-- Pending Friend Requests -->
+    <div class="card">
+      <h2>Pending Friend Requests</h2>
+      {% if pending_requests and pending_requests|length %}
+        <div class="list">
+          {% for r in pending_requests %}
+            {% set label = r.name or r.username or r.email or '' %}
+            <div class="friend-row" style="flex-wrap: wrap;">
+              <div class="avatar">
+                {{ (label[0]|upper) if label else 'U' }}
+              </div>
+
+              <div class="vstack">
+                <strong>{{ label }}</strong>
+                <small class="muted">{{ r.email or '' }}</small>
+              </div>
+
+              <span class="spacer"></span>
+
+              <form method="post"
+                    action="{{ url_for('main.friends') }}"
+                    style="margin:0;">
+                <input type="hidden" name="friend_request_id" value="{{ r.id }}">
+                <div style="display:flex; gap:0.5rem;">
+                  <button class="btn accent"
+                    type="submit"
+                    name="friend_request_status"
+                    value="ACCEPT">
+                    Accept
+                  </button>
+                  <button class="btn ghost"
+                          type="submit"
+                          name="friend_request_status"
+                          value="DENY">
+                    Deny
+                  </button>
+                </div>
+              </form>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="helper">No pending friend requests.</p>
+      {% endif %}
+    </div>
+
+    <!-- Add Friend -->
     <div class="card">
       <h2>Add Friend</h2>
       <form method="post" action="{{ url_for('main.friends') }}">

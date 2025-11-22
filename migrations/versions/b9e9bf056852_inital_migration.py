@@ -46,7 +46,7 @@ def upgrade():
     sa.Column('name', sa.String(length=100), nullable=False),
     sa.Column('start_date', sa.Date(), nullable=False),
     sa.Column('end_date', sa.Date(), nullable=False),
-    sa.CheckConstraint('end_date > start_date', name='check_start_before_end_date'),
+    sa.CheckConstraint('end_date >= start_date', name='check_start_before_end_date'),
     sa.CheckConstraint('end_date >= CURRENT_DATE', name='check_end_after_current_date'),
     sa.CheckConstraint('start_date >= CURRENT_DATE', name='check_start_after_current_date'),
     sa.ForeignKeyConstraint(['host_id'], ['users.id'], ondelete='CASCADE'),

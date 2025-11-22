@@ -10,12 +10,14 @@
       <p class="helper">Trip not found.</p>
     {% else %}
       <div class="grid">
+
+        <!-- Overview -->
         <div class="card">
           <h2>Overview</h2>
           <div><strong>Destination:</strong> {{ trip.destination or '-' }}</div>
           <div><strong>Dates:</strong> {{ trip.start_date }} → {{ trip.end_date }}</div>
-          <!-- <div><strong>Activities:</strong> {{ (trip.activities | join(', ')) if trip.activities else '-' }}</div> -->
-          <div><strong>Activities:</strong> 
+          <div>
+            <strong>Activities:</strong>
             {% if activities %}
               {{ activities | join(', ') }}
             {% else %}
@@ -23,31 +25,259 @@
             {% endif %}
           </div>
 
+          <div style="margin-top:0.75rem;">
+            <strong>Notes:</strong><br>
+            <form method="post"
+                  action="{{ url_for('main.trip_detail', trip_id=trip.id) }}"
+                  style="margin-top:0.25rem;">
+              <input type="hidden" name="form_type" value="notes">
+              <textarea id="notes"
+                        name="notes"
+                        rows="4"
+                        placeholder="Add trip details, reminders, or special plans…"
+                        style="width:100%; resize:vertical;">{{ trip.notes or '' }}</textarea>
+              <button class="btn accent" type="submit" style="margin-top:0.5rem;">
+                Save notes
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Members -->
         <div class="card">
           <h2>Members</h2>
           <ul class="clean">
-            {% for m in trip.members or [] %}
-              <li>{{ m.name or m }}</li>
-            {% endfor %}
-            {% if not trip.members %}<li class="muted">No members</li>{% endif %}
+            {% if members and members|length %}
+              {% for m in members %}
+                <li style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; flex-wrap:wrap;">
+                  <div>
+                    <strong>{{ m.username or m.name or m.email }}</strong>
+                    {% if m.id == trip.host_id %}
+                      <span class="badge">Host</span>
+                    {% elif m.id == current_user.id %}
+                      <span class="badge">You</span>
+                    {% endif %}
+                    <br>
+                    <small class="muted">{{ m.email or '' }}</small>
+                  </div>
+
+                  {% if is_host and m.id != trip.host_id %}
+                    <form method="post"
+                          action="{{ url_for('main.trip_detail', trip_id=trip.id) }}"
+                          style="margin:0;">
+                      <input type="hidden" name="member_remove_id" value="{{ m.id }}">
+                      <button class="btn ghost" type="submit">Remove</button>
+                    </form>
+                  {% endif %}
+                </li>
+              {% endfor %}
+            {% else %}
+              <li class="muted">No members yet.</li>
+            {% endif %}
           </ul>
         </div>
 
+        <!-- Invite to Trip (host only) -->
+        {% if is_host %}
+          <div class="card">
+            <h2>Invite to Trip</h2>
+
+            <!-- Invite by email or username -->
+            <form method="post" action="{{ url_for('main.trip_detail', trip_id=trip.id) }}">
+              <div class="field">
+                <label for="user_to_invite">Email or username</label>
+                <input id="user_to_invite"
+                       name="user_to_invite"
+                       placeholder="friend@example.com">
+              </div>
+              <button class="btn accent" type="submit">Invite</button>
+            </form>
+
+            <!-- Invite from friends list -->
+            {% if friends_for_invite and friends_for_invite|length %}
+              <hr style="margin:1rem 0; border:none; border-top:1px solid #e5e7eb;">
+              <h3 style="margin-bottom:0.25rem;">Invite a Friend</h3>
+              <p class="muted" style="margin-bottom:0.75rem;">
+                Choose from your friends list to quickly invite them to this trip.
+              </p>
+
+              <ul class="clean">
+                {% for f in friends_for_invite %}
+                  {% set label = f.username or f.name or f.email or '' %}
+                  <li style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+                    <div class="avatar">
+                      {{ (label[0]|upper) if label else 'F' }}
+                    </div>
+
+                    <div class="vstack" style="min-width:0;">
+                      <strong>{{ label }}</strong>
+                      <small class="muted">{{ f.email or '' }}</small>
+                    </div>
+
+                    <span class="spacer"></span>
+
+                    {% if f.id in pending_invites_to_this_trip %}
+                      <span class="badge" style="background:#e5e7eb; color:#374151;">
+                        Pending
+                      </span>
+                    {% else %}
+                      <form method="post"
+                            action="{{ url_for('main.trip_detail', trip_id=trip.id) }}"
+                            style="margin:0;">
+                        <input type="hidden" name="friend_to_invite_id" value="{{ f.id }}">
+                        <button class="btn ghost" type="submit">
+                          Invite
+                        </button>
+                      </form>
+                    {% endif %}
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="helper" style="margin-top:0.75rem;">
+                No friends available to invite yet. Add friends from the Friends page first.
+              </p>
+            {% endif %}
+          </div>
+        {% endif %}
+
+        <!-- Weather -->
         <div class="card" style="grid-column:1/-1">
-          <h2>Map & Weather</h2>
-          <div class="map-placeholder">Map / Weather widget placeholder</div>
-          <small class="muted">Backend team can embed a real map or weather block here.</small>
+          <h2>Weather Forecast</h2>
+          <small class="muted" style="display:block; margin-bottom:1rem;">
+            Forecast data is provided by the National Weather Service and typically
+            extends about 7 days out. Trips beyond that range may show limited or no forecast.
+          </small>
+
+          <div id="weather-loading" class="muted" style="margin-top:0.5rem;">Loading weather…</div>
+          <div id="weather-error" class="muted" style="display:none; color:#b91c1c;"></div>
+          <div id="weather-container" style="display:none;"></div>
+
+          <div id="weather-data"
+               data-lat="{{ trip.lat }}"
+               data-lon="{{ trip.lon }}"
+               data-start="{{ trip.start_date }}"
+               data-end="{{ trip.end_date }}">
+          </div>
+
+          <script src="{{ url_for('static', filename='js/weather.js') }}"></script>
         </div>
 
+        <!-- Packing List -->
         <div class="card" style="grid-column:1/-1">
           <h2>Packing List</h2>
-          <ul class="clean">
-            {% set items = trip.packing or ['Backpack','Water bottle','Snacks','First aid kit','Map/Offline maps'] %}
-            {% for item in items %}
-              <li><label><input type="checkbox"> {{ item }}</label></li>
-            {% endfor %}
-          </ul>
+
+          {% if pack_items and pack_items|length %}
+            <form method="post" action="{{ url_for('main.trip_detail', trip_id=trip.id) }}">
+              <input type="hidden" name="form_type" value="packlist">
+
+              <ul class="clean">
+                {% for item in pack_items %}
+                  <li style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem;">
+                    <label style="display:flex; align-items:center; gap:0.5rem; flex:1;">
+                      <input type="checkbox"
+                             name="packed_{{ item.id }}"
+                             {% if item.is_packed %}checked{% endif %}>
+                      {{ item.name }}
+                    </label>
+
+                    <button type="submit"
+                            name="remove_item_id"
+                            value="{{ item.id }}"
+                            class="btn ghost"
+                            title="Remove item"
+                            style="padding:0.15rem 0.5rem;">
+                      🗑
+                    </button>
+                  </li>
+                {% endfor %}
+              </ul>
+
+              <div class="field" style="margin-top:0.75rem;">
+                <label for="new_item_name">Add custom item</label>
+                <div style="display:flex; gap:0.5rem; align-items:center;">
+                  <input id="new_item_name" name="new_item_name" placeholder="e.g., Camera, Extra socks">
+                  <button class="btn ghost" type="submit" title="Add item">+</button>
+                </div>
+              </div>
+
+              <div class="field" style="margin-top:0.5rem;">
+                <button class="btn accent" type="submit">Save list</button>
+              </div>
+            </form>
+
+          {% else %}
+            <form method="post" action="{{ url_for('main.trip_detail', trip_id=trip.id) }}">
+              <input type="hidden" name="form_type" value="packlist">
+
+              <p class="muted">No packing items yet.</p>
+
+              <div class="field" style="margin-top:0.75rem;">
+                <label for="new_item_name">Add your first item</label>
+                <div style="display:flex; gap:0.5rem; align-items:center;">
+                  <input id="new_item_name" name="new_item_name" placeholder="e.g., Backpack">
+                  <button class="btn ghost" type="submit" title="Add item">+</button>
+                </div>
+              </div>
+
+              <div class="field" style="margin-top:0.5rem;">
+                <button class="btn accent" type="submit">Save packing list</button>
+              </div>
+            </form>
+          {% endif %}
         </div>
+
+        <!-- Weather-based packing suggestions -->
+        <div class="card" style="grid-column:1/-1">
+          <h2>Suggested Items based on Weather</h2>
+
+          <button id="toggle-weather-suggestions"
+                  class="btn ghost"
+                  type="button"
+                  style="margin-bottom:0.75rem;">
+            Show Suggestions ▼
+          </button>
+
+          <div id="weather-suggestions-wrapper" style="display:none;">
+            <ul id="weather-pack-list" class="clean">
+              <li class="muted" id="weather-pack-empty">
+                Suggestions will appear here based on the forecast for your trip dates.
+              </li>
+            </ul>
+
+            <small class="muted">
+              These items are suggestions only. Use the "+" box above to add them to your actual packing list.
+            </small>
+          </div>
+        </div>
+
+        <!-- Danger Zone -->
+        <div class="card" style="grid-column:1/-1">
+          <h2>Danger Zone</h2>
+
+          {% if is_host %}
+            <p class="muted">Deleting this trip will remove it for all members.</p>
+            <form method="post" action="{{ url_for('main.trip_detail', trip_id=trip.id) }}">
+              <input type="hidden" name="delete_trip" value="1">
+              <button type="submit"
+                      class="btn danger"
+                      style="background:#b91c1c; color:white; border-radius:12px; padding:0.5rem 1rem;">
+                Delete Trip
+              </button>
+            </form>
+          {% else %}
+            <p class="muted">Leaving this trip will remove it from your account, but keep it for others.</p>
+            <form method="post" action="{{ url_for('main.trip_detail', trip_id=trip.id) }}">
+              <input type="hidden" name="leave_trip" value="1">
+              <button type="submit"
+                      class="btn danger"
+                      style="background:#b91c1c; color:white; border-radius:12px; padding:0.5rem 1rem;">
+                Leave Trip
+              </button>
+            </form>
+          {% endif %}
+        </div>
+
       </div>
     {% endif %}
   </div>
