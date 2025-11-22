@@ -12,6 +12,7 @@ from .database import (
     accept_friend_request,
     remove_friend,
     get_users_friends,
+    get_users_trips,
     invite_user_to_trip,
     add_pack_item,
     get_pack_list,
