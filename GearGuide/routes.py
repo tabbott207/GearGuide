@@ -5,11 +5,14 @@ from .models import User, Trip
 from .auth import verify_user
 from .database import (
     User,
+    Trip,
+    TripInvite,
     Friendship,
     send_friend_request,
     accept_friend_request,
     remove_friend,
     get_users_friends,
+    invite_user_to_trip,
 )
 from werkzeug.security import generate_password_hash, check_password_hash   
 from flask_login import login_user, logout_user, current_user, login_required
@@ -34,11 +37,70 @@ def index():
 @bp.route("/home", endpoint="home")
 def homePage(): return render_template("home.html")
 
-@bp.route("/trips", endpoint="trips")
+@bp.route("/trips", methods=["GET", "POST"], endpoint="trips")
 @login_required
-def myTripsPage(): 
-    user_trips = Trip.query.filter_by(host_id=current_user.id).all()
-    return render_template("trips.html", trips = user_trips)
+def myTripsPage():
+    if request.method == "POST":
+        # Handle Accept / Decline for trip invites
+        invite_trip_id = request.form.get("invite_trip_id", "").strip()
+        invite_action = request.form.get("invite_action", "").strip().upper()
+
+        if invite_trip_id and invite_action in {"ACCEPT", "DECLINE"}:
+            try:
+                trip_id = int(invite_trip_id)
+            except ValueError:
+                trip_id = None
+
+            if trip_id is not None:
+                invite = TripInvite.query.filter_by(
+                    user_id=current_user.id,
+                    trip_id=trip_id
+                ).first()
+
+                if invite:
+                    if invite_action == "ACCEPT":
+                        invite.accepted = True
+                    elif invite_action == "DECLINE":
+                        db.session.delete(invite)
+                    db.session.commit()
+
+        return redirect(url_for("main.trips"))
+
+    # Trips I host
+    host_trips = Trip.query.filter_by(host_id=current_user.id).all()
+
+    # Trips I've accepted an invite to
+    shared_trips = (
+        db.session.query(Trip)
+        .join(TripInvite, TripInvite.trip_id == Trip.id)
+        .filter(
+            TripInvite.user_id == current_user.id,
+            TripInvite.accepted == True
+        )
+        .all()
+    )
+
+    # Combine & dedupe
+    trips_dict = {t.id: t for t in host_trips + shared_trips}
+    all_trips = list(trips_dict.values())
+
+    # Pending invites *to* me (not accepted yet)
+    pending_invites = (
+        db.session.query(TripInvite, Trip, User)
+        .join(Trip, Trip.id == TripInvite.trip_id)
+        .join(User, User.id == Trip.host_id)
+        .filter(
+            TripInvite.user_id == current_user.id,
+            TripInvite.accepted == False
+        )
+        .all()
+    )
+
+    return render_template(
+        "trips.html",
+        trips=all_trips,
+        pending_invites=pending_invites,
+    )
 
 @bp.route("/account", endpoint="account")
 def myProfilePage(): return render_template("account.html")
@@ -112,16 +174,77 @@ def myFriendsPage():
 @bp.route("/trips/<int:trip_id>", methods=["GET", "POST"], endpoint="trip_detail")
 @login_required
 def viewTripPage(trip_id):
-    # Only let the host view their own trip
-    trip = Trip.query.filter_by(id=trip_id, host_id=current_user.id).first()
+    # 1) Fetch trip
+    trip = Trip.query.filter_by(id=trip_id).first()
     if not trip:
-        flash("Trip not found, or you do not have permission to view it.", "danger")
+        flash("Trip not found.", "danger")
         return redirect(url_for("main.trips"))
 
+    # 2) Permission check: host OR accepted invitee
+    is_host = (trip.host_id == current_user.id)
+
+    if not is_host:
+        invite = TripInvite.query.filter_by(
+            user_id=current_user.id,
+            trip_id=trip.id,
+            accepted=True
+        ).first()
+        if invite is None:
+            flash("You do not have permission to view this trip.", "danger")
+            return redirect(url_for("main.trips"))
+
     if request.method == "POST":
+
+        # --- Delete trip (host only) ---
+        if request.form.get("delete_trip"):
+            if is_host:
+                db.session.delete(trip)
+                db.session.commit()
+                flash("Trip deleted.", "success")
+            else:
+                flash("Only the host can delete this trip.", "danger")
+            return redirect(url_for("main.trips"))
+
+        # --- Leave trip (secondary account) ---
+        if request.form.get("leave_trip"):
+            if not is_host:
+                invite = TripInvite.query.filter_by(
+                    user_id=current_user.id,
+                    trip_id=trip.id,
+                    accepted=True
+                ).first()
+                if invite:
+                    db.session.delete(invite)
+                    db.session.commit()
+                    flash("You have left the trip.", "success")
+            else:
+                flash("Host cannot leave their own trip. Delete it instead.", "danger")
+            return redirect(url_for("main.trips"))
+
+        # --- Remove another member (host only) ---
+        member_remove_id = request.form.get("member_remove_id", "").strip()
+        if member_remove_id:
+            try:
+                member_id = int(member_remove_id)
+            except ValueError:
+                member_id = None
+
+            if member_id is not None and is_host and member_id != trip.host_id:
+                invite = TripInvite.query.filter_by(
+                    user_id=member_id,
+                    trip_id=trip.id,
+                    accepted=True
+                ).first()
+                if invite:
+                    db.session.delete(invite)
+                    db.session.commit()
+                    flash("Member removed from trip.", "success")
+            return redirect(url_for("main.trip_detail", trip_id=trip.id))
+
+        # --- Invite user to trip (host only) ---
         user_to_invite = request.form.get("user_to_invite", "").strip()
 
-        if user_to_invite:
+        if user_to_invite and is_host:
             # find user by email or username
             if "@" in user_to_invite:
                 user = User.query.filter_by(email=user_to_invite).first()
@@ -129,13 +252,40 @@ def viewTripPage(trip_id):
                 user = User.query.filter_by(username=user_to_invite).first()
 
             if user:
+                # Create or reuse invite; let /trips handle acceptance
                 invite_user_to_trip(user.id, trip.id)
                 flash(f"Invited {user.username} to this trip.", "success")
             else:
                 flash("User not found.", "danger")
 
+    # 3) Build members list: host + accepted invitees
+    host_user = User.query.get(trip.host_id)
+
+    accepted_members = (
+        db.session.query(User)
+        .join(TripInvite, TripInvite.user_id == User.id)
+        .filter(
+            TripInvite.trip_id == trip.id,
+            TripInvite.accepted == True
+        )
+        .all()
+    )
+
+    # Ensure host is always first and not duplicated
+    members_dict = {host_user.id: host_user}
+    for m in accepted_members:
+        members_dict[m.id] = m
+    members = list(members_dict.values())
+
     activities = trip.activities.split(",") if trip.activities else []
-    return render_template("trip-detail.html", trip=trip, activities=activities)
+
+    return render_template(
+        "trip-detail.html",
+        trip=trip,
+        activities=activities,
+        members=members,
+        is_host=is_host,
+    )
 
 
 

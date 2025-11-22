@@ -5,6 +5,40 @@
   <p class="kicker">Trips</p>
   <h1>My Trips</h1>
 
+  <!-- Pending Trip Invites -->
+  <div class="card" style="margin-bottom: 1rem;">
+    <h2>Pending Trip Invites</h2>
+    {% if pending_invites and pending_invites|length %}
+      <div class="list">
+        {% for invite, trip, host in pending_invites %}
+          <div class="list-row">
+            <div>
+              <strong>{{ host.username }}</strong>
+              <span class="muted"> has invited you to join </span><br>
+              <strong>{{ trip.name }}</strong><br>
+              <small class="muted">{{ trip.destination or '-' }}</small><br>
+              <small class="muted">{{ trip.start_date }} → {{ trip.end_date }}</small>
+            </div>
+            <form method="post"
+                  action="{{ url_for('main.trips') }}"
+                  style="display:flex; gap:0.5rem; margin:0;">
+              <input type="hidden" name="invite_trip_id" value="{{ trip.id }}">
+              <button class="btn accent" type="submit" name="invite_action" value="ACCEPT">
+                Accept
+              </button>
+              <button class="btn ghost" type="submit" name="invite_action" value="DECLINE">
+                Decline
+              </button>
+            </form>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="helper">You have no pending trip invites.</p>
+    {% endif %}
+  </div>
+
+  <!-- My Trips -->
   <div class="card">
     {% if trips and trips|length %}
       <div class="list">
@@ -15,12 +49,17 @@
               <small class="muted">{{ t.destination or '-' }}</small><br>
               <small class="muted">{{ t.start_date }} → {{ t.end_date }}</small>
             </div>
-            <a class="btn ghost" href="{{ url_for('main.trip_detail', trip_id=t.id) }}">Open trip</a>
+            <a class="btn ghost" href="{{ url_for('main.trip_detail', trip_id=t.id) }}">
+              Open trip
+            </a>
           </div>
         {% endfor %}
       </div>
     {% else %}
-      <p class="helper">You have no trips yet. <a href="{{ url_for('main.create_trip') }}">Create one</a>.</p>
+      <p class="helper">
+        You have no trips yet.
+        <a href="{{ url_for('main.create_trip') }}">Create one</a>.
+      </p>
     {% endif %}
   </div>
 </section>

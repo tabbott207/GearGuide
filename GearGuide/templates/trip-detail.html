@@ -10,35 +10,85 @@
       <p class="helper">Trip not found.</p>
     {% else %}
       <div class="grid">
+        <!-- Overview -->
         <div class="card">
           <h2>Overview</h2>
           <div><strong>Destination:</strong> {{ trip.destination or '-' }}</div>
           <div><strong>Dates:</strong> {{ trip.start_date }} → {{ trip.end_date }}</div>
-          <!-- <div><strong>Activities:</strong> {{ (trip.activities | join(', ')) if trip.activities else '-' }}</div> -->
-          <div><strong>Activities:</strong> 
+          <div><strong>Activities:</strong>
             {% if activities %}
               {{ activities | join(', ') }}
             {% else %}
               -
             {% endif %}
           </div>
+        </div>
 
+        <!-- Members -->
         <div class="card">
           <h2>Members</h2>
           <ul class="clean">
-            {% for m in trip.members or [] %}
-              <li>{{ m.name or m }}</li>
-            {% endfor %}
-            {% if not trip.members %}<li class="muted">No members</li>{% endif %}
+            {% if members and members|length %}
+              {% for m in members %}
+                <li style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; flex-wrap:wrap;">
+                  <div>
+                    <strong>{{ m.username or m.name or m.email }}</strong>
+                    {% if m.id == trip.host_id %}
+                      <span class="badge">Host</span>
+                    {% elif m.id == current_user.id %}
+                      <span class="badge">You</span>
+                    {% endif %}
+                    <br>
+                    <small class="muted">{{ m.email or '' }}</small>
+                  </div>
+
+                  {% if is_host %}
+                    {% if m.id != trip.host_id %}
+                      <!-- Host removing another member -->
+                      <form method="post"
+                            action="{{ url_for('main.trip_detail', trip_id=trip.id) }}"
+                            style="margin:0;">
+                        <input type="hidden" name="member_remove_id" value="{{ m.id }}">
+                        <button class="btn ghost" type="submit">Remove</button>
+                      </form>
+                    {% endif %}
+                  {% else %}
+                    {# For secondary accounts, we do not show remove buttons here.
+                       Leaving is handled in the Danger Zone card below. #}
+                  {% endif %}
+                </li>
+              {% endfor %}
+            {% else %}
+              <li class="muted">No members yet.</li>
+            {% endif %}
           </ul>
         </div>
 
+        <!-- Invite to Trip (host only) -->
+        {% if is_host %}
+        <div class="card">
+          <h2>Invite to Trip</h2>
+          <form method="post" action="{{ url_for('main.trip_detail', trip_id=trip.id) }}">
+            <div class="field">
+              <label for="user_to_invite">Email or username</label>
+              <input
+                id="user_to_invite"
+                name="user_to_invite"
+                placeholder="friend@example.com">
+            </div>
+            <button class="btn accent" type="submit">Invite</button>
+          </form>
+        </div>
+        {% endif %}
+
+        <!-- Map & Weather (placeholder) -->
         <div class="card" style="grid-column:1/-1">
-          <h2>Map & Weather</h2>
+          <h2>Map &amp; Weather</h2>
           <div class="map-placeholder">Map / Weather widget placeholder</div>
           <small class="muted">Backend team can embed a real map or weather block here.</small>
         </div>
 
+        <!-- Packing List (placeholder) -->
         <div class="card" style="grid-column:1/-1">
           <h2>Packing List</h2>
           <ul class="clean">
@@ -48,6 +98,35 @@
             {% endfor %}
           </ul>
         </div>
+
+        <!-- Danger Zone: Delete (host) or Leave (member) -->
+        <div class="card" style="grid-column:1/-1">
+          <h2>Danger Zone</h2>
+          {% if is_host %}
+            <p class="muted">Deleting this trip will remove it for all members.</p>
+            <form method="post" action="{{ url_for('main.trip_detail', trip_id=trip.id) }}">
+              <input type="hidden" name="delete_trip" value="1">
+              <button
+                type="submit"
+                class="btn danger"
+                style="background:#b91c1c; color:white; border-radius:12px; padding:0.5rem 1rem;">
+                Delete Trip
+              </button>
+            </form>
+          {% else %}
+            <p class="muted">Leaving this trip will remove it from your account, but keep it for others.</p>
+            <form method="post" action="{{ url_for('main.trip_detail', trip_id=trip.id) }}">
+              <input type="hidden" name="leave_trip" value="1">
+              <button
+                type="submit"
+                class="btn danger"
+                style="background:#b91c1c; color:white; border-radius:12px; padding:0.5rem 1rem;">
+                Leave Trip
+              </button>
+            </form>
+          {% endif %}
+        </div>
+
       </div>
     {% endif %}
   </div>

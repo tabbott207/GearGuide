@@ -41,6 +41,7 @@ class TripInvite(db.Model):
 
     user_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), primary_key=True)
     trip_id = Column(Integer, ForeignKey('trips.id', ondelete='CASCADE'), primary_key=True)
+    accepted = Column(Boolean, nullable=False, default=False)
 
 
 class Friendship(db.Model):
