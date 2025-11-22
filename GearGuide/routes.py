@@ -13,6 +13,8 @@ from .database import (
     remove_friend,
     get_users_friends,
     invite_user_to_trip,
+    add_user,
+    get_user_by_username,
 )
 from werkzeug.security import generate_password_hash, check_password_hash   
 from flask_login import login_user, logout_user, current_user, login_required
@@ -102,8 +104,103 @@ def myTripsPage():
         pending_invites=pending_invites,
     )
 
-@bp.route("/account", endpoint="account")
-def myProfilePage(): return render_template("account.html")
+@bp.route("/account", methods=["GET", "POST"], endpoint="account")
+@login_required
+def accountPage():
+    if request.method == "POST":
+        form_type = request.form.get("form_type", "profile")
+
+        # -------- PROFILE FORM: username + email --------
+        if form_type == "profile":
+            new_username = request.form.get("username", "").strip()
+            new_email = request.form.get("email", "").strip().lower()
+
+            changed = False
+
+            # Username change
+            if new_username != current_user.username:
+                if not new_username:
+                    flash("Username cannot be empty.", "danger")
+                    return redirect(url_for("main.account"))
+
+                if " " in new_username:
+                    flash("Username cannot contain spaces.", "danger")
+                    return redirect(url_for("main.account"))
+
+                if len(new_username) > 30:
+                    flash("Username must be at most 30 characters.", "danger")
+                    return redirect(url_for("main.account"))
+
+                existing_user = User.query.filter(
+                    User.username == new_username,
+                    User.id != current_user.id
+                ).first()
+                if existing_user:
+                    flash("That username is already taken.", "danger")
+                    return redirect(url_for("main.account"))
+
+                current_user.username = new_username
+                changed = True
+
+            # Email change
+            if new_email != current_user.email:
+                if not new_email:
+                    flash("Email cannot be empty.", "danger")
+                    return redirect(url_for("main.account"))
+
+                existing_email_user = User.query.filter(
+                    User.email == new_email,
+                    User.id != current_user.id
+                ).first()
+                if existing_email_user:
+                    flash("That email is already in use.", "danger")
+                    return redirect(url_for("main.account"))
+
+                current_user.email = new_email
+                changed = True
+
+            if changed:
+                db.session.commit()
+                flash("Profile updated successfully.", "success")
+            else:
+                flash("No changes were made.", "info")
+
+            return redirect(url_for("main.account"))
+
+        # -------- PASSWORD FORM --------
+        elif form_type == "password":
+            current_password = request.form.get("current_password", "")
+            new_password = request.form.get("new_password", "")
+            confirm_password = request.form.get("confirm_password", "")
+
+            # Only proceed if they entered a new password
+            if not new_password:
+                flash("Please enter a new password.", "danger")
+                return redirect(url_for("main.account"))
+
+            if not current_password:
+                flash("Enter your current password to set a new password.", "danger")
+                return redirect(url_for("main.account"))
+
+            if not check_password_hash(current_user.password_hash, current_password):
+                flash("Current password is incorrect.", "danger")
+                return redirect(url_for("main.account"))
+
+            if len(new_password) < 8:
+                flash("New password must be at least 8 characters long.", "danger")
+                return redirect(url_for("main.account"))
+
+            if new_password != confirm_password:
+                flash("New password and confirmation do not match.", "danger")
+                return redirect(url_for("main.account"))
+
+            current_user.password_hash = generate_password_hash(new_password)
+            db.session.commit()
+            flash("Password updated successfully.", "success")
+            return redirect(url_for("main.account"))
+
+    # GET
+    return render_template("account.html")
 
 @bp.route("/friends", methods=["GET", "POST"], endpoint="friends")
 @login_required
@@ -334,26 +431,36 @@ def signupPage(): return render_template("signup.html")
 
 @bp.route("/signup", methods=["POST"])
 def signupSubmit():
-    username = request.form.get("name")
-    email = request.form.get("email")
-    password = request.form.get("password")
+    username = request.form.get("username", "").strip()
+    email = request.form.get("email", "").strip().lower()
+    password = request.form.get("password", "")
 
     if not username or not email or not password:
         flash("Please fill out all fields.", "danger")
         return redirect(url_for("main.signup"))
-    
+
+    if " " in username:
+        flash("Username cannot contain spaces.", "danger")
+        return redirect(url_for("main.signup"))
+
+    if len(username) > 30:
+        flash("Username must be at most 30 characters.", "danger")
+        return redirect(url_for("main.signup"))
+
+    # Check if username or email is taken
     existing_user = User.query.filter(
         (User.username == username) | (User.email == email)
     ).first()
     if existing_user:
         flash("Username or email already exists.", "danger")
         return redirect(url_for("main.signup"))
-    
+
     hashed_password = generate_password_hash(password)
     user = User(username=username, email=email, password_hash=hashed_password)
 
     db.session.add(user)
     db.session.commit()
+
     flash("Signup successful! Please log in.", "success")
     return redirect(url_for("main.login"))
 
