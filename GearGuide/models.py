@@ -29,7 +29,7 @@ class Trip(db.Model):
 
 
     __table_args__ = (
-        CheckConstraint('end_date > start_date', name='check_start_before_end_date'),
+        CheckConstraint('end_date >= start_date', name='check_start_before_end_date'),
         CheckConstraint('start_date >= CURRENT_DATE', name='check_start_after_current_date'),
         CheckConstraint('end_date >= CURRENT_DATE', name='check_end_after_current_date'),
         UniqueConstraint('host_id', 'name', name='unique_trip_name_for_host')
