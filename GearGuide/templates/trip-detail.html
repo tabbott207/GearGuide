@@ -10,12 +10,14 @@
       <p class="helper">Trip not found.</p>
     {% else %}
       <div class="grid">
-                                <!-- Overview -->
+
+        <!-- Overview -->
         <div class="card">
           <h2>Overview</h2>
           <div><strong>Destination:</strong> {{ trip.destination or '-' }}</div>
           <div><strong>Dates:</strong> {{ trip.start_date }} → {{ trip.end_date }}</div>
-          <div><strong>Activities:</strong>
+          <div>
+            <strong>Activities:</strong>
             {% if activities %}
               {{ activities | join(', ') }}
             {% else %}
@@ -25,21 +27,22 @@
 
           <div style="margin-top:0.75rem;">
             <strong>Notes:</strong><br>
-
-            <form method="post" action="{{ url_for('main.trip_detail', trip_id=trip.id) }}" style="margin-top:0.25rem;">
+            <form method="post"
+                  action="{{ url_for('main.trip_detail', trip_id=trip.id) }}"
+                  style="margin-top:0.25rem;">
               <input type="hidden" name="form_type" value="notes">
-              <textarea
-                id="notes"
-                name="notes"
-                rows="4"
-                placeholder="Add trip details, reminders, or special plans…"
-                style="width:100%; resize:vertical;">{{ trip.notes or '' }}</textarea>
+              <textarea id="notes"
+                        name="notes"
+                        rows="4"
+                        placeholder="Add trip details, reminders, or special plans…"
+                        style="width:100%; resize:vertical;">{{ trip.notes or '' }}</textarea>
               <button class="btn accent" type="submit" style="margin-top:0.5rem;">
                 Save notes
               </button>
             </form>
           </div>
         </div>
+
         <!-- Members -->
         <div class="card">
           <h2>Members</h2>
@@ -60,7 +63,6 @@
 
                   {% if is_host %}
                     {% if m.id != trip.host_id %}
-                      <!-- Host removing another member -->
                       <form method="post"
                             action="{{ url_for('main.trip_detail', trip_id=trip.id) }}"
                             style="margin:0;">
@@ -68,9 +70,6 @@
                         <button class="btn ghost" type="submit">Remove</button>
                       </form>
                     {% endif %}
-                  {% else %}
-                    {# For secondary accounts, we do not show remove buttons here.
-                       Leaving is handled in the Danger Zone card below. #}
                   {% endif %}
                 </li>
               {% endfor %}
@@ -82,22 +81,19 @@
 
         <!-- Invite to Trip (host only) -->
         {% if is_host %}
-        <div class="card">
-          <h2>Invite to Trip</h2>
-          <form method="post" action="{{ url_for('main.trip_detail', trip_id=trip.id) }}">
-            <div class="field">
-              <label for="user_to_invite">Email or username</label>
-              <input
-                id="user_to_invite"
-                name="user_to_invite"
-                placeholder="friend@example.com">
-            </div>
-            <button class="btn accent" type="submit">Invite</button>
-          </form>
-        </div>
+          <div class="card">
+            <h2>Invite to Trip</h2>
+            <form method="post" action="{{ url_for('main.trip_detail', trip_id=trip.id) }}">
+              <div class="field">
+                <label for="user_to_invite">Email or username</label>
+                <input id="user_to_invite" name="user_to_invite" placeholder="friend@example.com">
+              </div>
+              <button class="btn accent" type="submit">Invite</button>
+            </form>
+          </div>
         {% endif %}
 
-                <!-- Weather -->
+        <!-- Weather -->
         <div class="card" style="grid-column:1/-1">
           <h2>Weather Forecast</h2>
           <small class="muted" style="display:block; margin-bottom:1rem;">
@@ -105,14 +101,10 @@
             extends about 7 days out. Trips beyond that range may show limited or no forecast.
           </small>
 
-          <div id="weather-loading" class="muted" style="margin-top:0.5rem;">
-            Loading weather…
-          </div>
+          <div id="weather-loading" class="muted" style="margin-top:0.5rem;">Loading weather…</div>
           <div id="weather-error" class="muted" style="display:none; color:#b91c1c;"></div>
-
           <div id="weather-container" style="display:none;"></div>
 
-          <!-- Trip data passed to weather.js via data-* attributes -->
           <div id="weather-data"
                data-lat="{{ trip.lat }}"
                data-lon="{{ trip.lon }}"
@@ -120,12 +112,10 @@
                data-end="{{ trip.end_date }}">
           </div>
 
-          <!-- External JS handles everything -->
           <script src="{{ url_for('static', filename='js/weather.js') }}"></script>
         </div>
 
-
-                        <!-- Packing List -->
+        <!-- Packing List -->
         <div class="card" style="grid-column:1/-1">
           <h2>Packing List</h2>
 
@@ -137,113 +127,93 @@
                 {% for item in pack_items %}
                   <li style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem;">
                     <label style="display:flex; align-items:center; gap:0.5rem; flex:1;">
-                      <input
-                        type="checkbox"
-                        name="packed_{{ item.id }}"
-                        {% if item.is_packed %}checked{% endif %}>
+                      <input type="checkbox"
+                             name="packed_{{ item.id }}"
+                             {% if item.is_packed %}checked{% endif %}>
                       {{ item.name }}
                     </label>
 
-                    <button
-                      type="submit"
-                      name="remove_item_id"
-                      value="{{ item.id }}"
-                      class="btn ghost"
-                      title="Remove item"
-                      style="padding:0.15rem 0.5rem;">
+                    <button type="submit"
+                            name="remove_item_id"
+                            value="{{ item.id }}"
+                            class="btn ghost"
+                            title="Remove item"
+                            style="padding:0.15rem 0.5rem;">
                       🗑
                     </button>
                   </li>
                 {% endfor %}
               </ul>
 
-              <!-- Add custom item with + button -->
-              <div class="field" style="margin-top: 0.75rem;">
+              <div class="field" style="margin-top:0.75rem;">
                 <label for="new_item_name">Add custom item</label>
                 <div style="display:flex; gap:0.5rem; align-items:center;">
-                  <input
-                    id="new_item_name"
-                    name="new_item_name"
-                    placeholder="e.g., Camera, Extra socks">
-                  <button
-                    class="btn ghost"
-                    type="submit"
-                    title="Add item">
-                    +
-                  </button>
+                  <input id="new_item_name" name="new_item_name" placeholder="e.g., Camera, Extra socks">
+                  <button class="btn ghost" type="submit" title="Add item">+</button>
                 </div>
               </div>
-                      
 
-              <div class="field" style="margin-top: 0.5rem;">
+              <div class="field" style="margin-top:0.5rem;">
                 <button class="btn accent" type="submit">Save list</button>
               </div>
             </form>
+
           {% else %}
             <form method="post" action="{{ url_for('main.trip_detail', trip_id=trip.id) }}">
               <input type="hidden" name="form_type" value="packlist">
 
               <p class="muted">No packing items yet.</p>
 
-              <div class="field" style="margin-top: 0.75rem;">
+              <div class="field" style="margin-top:0.75rem;">
                 <label for="new_item_name">Add your first item</label>
                 <div style="display:flex; gap:0.5rem; align-items:center;">
-                  <input
-                    id="new_item_name"
-                    name="new_item_name"
-                    placeholder="e.g., Backpack">
-                  <button
-                    class="btn ghost"
-                    type="submit"
-                    title="Add item">
-                    +
-                  </button>
+                  <input id="new_item_name" name="new_item_name" placeholder="e.g., Backpack">
+                  <button class="btn ghost" type="submit" title="Add item">+</button>
                 </div>
               </div>
 
-              <div class="field" style="margin-top: 0.5rem;">
+              <div class="field" style="margin-top:0.5rem;">
                 <button class="btn accent" type="submit">Save packing list</button>
               </div>
             </form>
           {% endif %}
         </div>
+
         <!-- Weather-based packing suggestions -->
-<div class="card" style="grid-column:1/-1">
-  <h2>Suggested Items based on Weather</h2>
+        <div class="card" style="grid-column:1/-1">
+          <h2>Suggested Items based on Weather</h2>
 
-  <button
-    id="toggle-weather-suggestions"
-    class="btn ghost"
-    type="button"
-    style="margin-bottom:0.75rem;"
-  >
-    Show Suggestions ▼
-  </button>
+          <button id="toggle-weather-suggestions"
+                  class="btn ghost"
+                  type="button"
+                  style="margin-bottom:0.75rem;">
+            Show Suggestions ▼
+          </button>
 
-  <div id="weather-suggestions-wrapper" style="display:none;">
-    <ul id="weather-pack-list" class="clean">
-      <li class="muted" id="weather-pack-empty">
-        Suggestions will appear here based on the forecast for your trip dates.
-      </li>
-    </ul>
+          <div id="weather-suggestions-wrapper" style="display:none;">
+            <ul id="weather-pack-list" class="clean">
+              <li class="muted" id="weather-pack-empty">
+                Suggestions will appear here based on the forecast for your trip dates.
+              </li>
+            </ul>
 
-    <small class="muted">
-      These items are suggestions only. Use the "+" box above to add them to your actual packing list.
-    </small>
-  </div>
-</div>
+            <small class="muted">
+              These items are suggestions only. Use the "+" box above to add them to your actual packing list.
+            </small>
+          </div>
+        </div>
 
-        <!-- Danger Zone: Delete (host) or Leave (member) -->
+        <!-- Danger Zone -->
         <div class="card" style="grid-column:1/-1">
           <h2>Danger Zone</h2>
+
           {% if is_host %}
             <p class="muted">Deleting this trip will remove it for all members.</p>
             <form method="post" action="{{ url_for('main.trip_detail', trip_id=trip.id) }}">
               <input type="hidden" name="delete_trip" value="1">
-              <button
-                type="submit"
-                class="btn danger"
-                style="background:#b91c1c; color:white; border-radius:12px; padding:0.5rem 1rem;">
+              <button type="submit"
+                      class="btn danger"
+                      style="background:#b91c1c; color:white; border-radius:12px; padding:0.5rem 1rem;">
                 Delete Trip
               </button>
             </form>
@@ -251,10 +221,9 @@
             <p class="muted">Leaving this trip will remove it from your account, but keep it for others.</p>
             <form method="post" action="{{ url_for('main.trip_detail', trip_id=trip.id) }}">
               <input type="hidden" name="leave_trip" value="1">
-              <button
-                type="submit"
-                class="btn danger"
-                style="background:#b91c1c; color:white; border-radius:12px; padding:0.5rem 1rem;">
+              <button type="submit"
+                      class="btn danger"
+                      style="background:#b91c1c; color:white; border-radius:12px; padding:0.5rem 1rem;">
                 Leave Trip
               </button>
             </form>

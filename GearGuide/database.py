@@ -187,56 +187,94 @@ def get_users_friends(
     return friends
 
 def send_friend_request(
-    user1_id : int,
-    user2_id : int
+    user1_id: int,  # sender
+    user2_id: int   # receiver
 ) -> bool:
-    """Adds a friend request to the database
-    
-    Returns false if insert fails or users don't exist"""
+    """Create a pending friend request from user1_id to user2_id.
 
-    user1 = get_user_profile(user1_id)
-    user2 = get_user_profile(user2_id)
+    Uses user1_id/user2_id as a sorted pair in the table, and stores
+    initiator_id as the actual sender. If an old row exists without
+    initiator_id, we update it.
+    """
 
-    if(user1 is None or user2 is None):
+    if user1_id == user2_id:
         return False
 
-    request = Friendship(user1_id=user1_id, user2_id=user2_id, status='PENDING')
+    sender_id = user1_id
+    receiver_id = user2_id
+
+    # normalize pair to satisfy check_user1_lt_user2
+    low = min(sender_id, receiver_id)
+    high = max(sender_id, receiver_id)
+
+    existing = (
+        db.session.query(Friendship)
+        .filter_by(user1_id=low, user2_id=high)
+        .first()
+    )
+
+    if existing:
+        # If there's an old row with NULL initiator_id, patch it
+        if existing.status == "PENDING" and existing.initiator_id is None:
+            existing.initiator_id = sender_id
+            db.session.commit()
+            return True
+
+        # If it is already pending or accepted with initiator set, treat as success
+        if existing.status in ("PENDING", "ACCEPTED"):
+            return True
+
+        # If blocked, do nothing
+        if existing.status == "BLOCKED":
+            return False
+
+    friendship = Friendship(
+        user1_id=low,
+        user2_id=high,
+        status="PENDING",
+        initiator_id=sender_id
+    )
 
     try:
-        db.session.add(request)
+        db.session.add(friendship)
         db.session.commit()
         return True
     except IntegrityError:
         db.session.rollback()
         return False
 
-def accept_friend_request(user1_id, user2_id):
+def accept_friend_request(user1_id: int, user2_id: int) -> None:
     """
-    Accept a friend request between user1 and user2.
-    user1_id: the id of the user who originally sent the request
-    user2_id: the id of the user who is accepting the request
+    Accept a friend request between user1_id and user2_id,
+    regardless of who sent it (we normalize the pair).
     """
+    low = min(user1_id, user2_id)
+    high = max(user1_id, user2_id)
+
     friendship = (
         db.session.query(Friendship)
-        .filter_by(user1_id=user1_id, user2_id=user2_id)
+        .filter_by(user1_id=low, user2_id=high)
         .first()
     )
 
     if friendship is None:
-        # nothing to accept
         return
 
     friendship.status = "ACCEPTED"
     db.session.commit()
 
 
-def remove_friend(user1_id, user2_id):
+def remove_friend(user1_id: int, user2_id: int) -> None:
     """
-    Remove/deny a friendship between user1 and user2.
+    Remove a friendship or pending request between user1_id and user2_id,
+    regardless of who originally sent it.
     """
+    low = min(user1_id, user2_id)
+    high = max(user1_id, user2_id)
+
     friendship = (
         db.session.query(Friendship)
-        .filter_by(user1_id=user1_id, user2_id=user2_id)
+        .filter_by(user1_id=low, user2_id=high)
         .first()
     )
 
@@ -279,26 +317,6 @@ def block_user(
         db.session.commit()
         return True
 
-def remove_friend(user1_id, user2_id):
-    """
-    Remove/deny a friendship between user1 and user2, regardless of who
-    originally sent the request. Works for both pending and accepted friendships.
-    """
-    friendship = (
-        db.session.query(Friendship)
-        .filter(
-            ((Friendship.user1_id == user1_id) & (Friendship.user2_id == user2_id))
-            | ((Friendship.user1_id == user2_id) & (Friendship.user2_id == user1_id))
-        )
-        .first()
-    )
-
-    if friendship is None:
-        # nothing to remove
-        return
-
-    db.session.delete(friendship)
-    db.session.commit()
 
 def add_pack_item(
     trip_id : int,

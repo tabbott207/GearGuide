@@ -256,18 +256,6 @@ footer {
   font-size: 12px;
 }
 
-/* ---------- MAP PLACEHOLDER ---------- */
-.map-placeholder {
-  height: 160px;
-  border: 1px dashed var(--border);
-  border-radius: 12px;
-  background: linear-gradient(135deg, #f7faf9, #eef5f2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #3a6f5d;
-}
-
 /* ---------- LIST CLEANUP ---------- */
 ul.clean {
   list-style: none;

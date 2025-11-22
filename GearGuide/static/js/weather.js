@@ -1,5 +1,3 @@
-// static/js/weather.js
-
 document.addEventListener("DOMContentLoaded", () => {
   const meta = document.getElementById("weather-data");
   if (!meta) return; // Not on a trip-detail page with weather

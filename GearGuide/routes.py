@@ -13,8 +13,6 @@ from .database import (
     remove_friend,
     get_users_friends,
     invite_user_to_trip,
-    add_user,
-    get_user_by_username,
     add_pack_item,
     get_pack_list,
     update_pack_item_status,
@@ -25,7 +23,7 @@ from flask_login import login_user, logout_user, current_user, login_required
 import requests
 from datetime import datetime  
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import or_
+from sqlalchemy import or_, and_
 #from GearGuide.database import add_user, get_user_by_username
 
 
@@ -242,31 +240,30 @@ def myFriendsPage():
             else:
                 user = User.query.filter_by(username=friend_identifier).first()
 
-            if user is not None:
-                # user1 = sender (current user), user2 = receiver (the friend)
+            if user is not None and user.id != current_user.id:
+                # current_user is always the sender (initiator)
                 send_friend_request(current_user.id, user.id)
 
         # 2) Accept / deny pending friend request
         friend_request_id = request.form.get("friend_request_id", "").strip()
-        friend_request_status = request.form.get("friend_request_status", "").strip()
+        friend_request_status = request.form.get("friend_request_status", "").strip().upper()
 
-        if friend_request_id and friend_request_status:
+        if friend_request_id and friend_request_status in {"ACCEPT", "DENY"}:
             try:
                 other_user_id = int(friend_request_id)
             except ValueError:
                 other_user_id = None
 
             if other_user_id is not None:
-                status_upper = friend_request_status.upper()
-                # user1 = sender (other user), user2 = receiver (current user)
-                if status_upper == "ACCPET":
+                if friend_request_status == "ACCEPT":
+                    # other_user_id ↔ current_user.id
                     accept_friend_request(other_user_id, current_user.id)
-                elif status_upper == "DENY":
+                else:
+                    # treat DENY as removing the pending row
                     remove_friend(other_user_id, current_user.id)
 
         # 3) Remove an existing friend
         friend_remove_id = request.form.get("friend_remove_id", "").strip()
-
         if friend_remove_id:
             try:
                 other_user_id = int(friend_remove_id)
@@ -276,15 +273,26 @@ def myFriendsPage():
             if other_user_id is not None:
                 remove_friend(current_user.id, other_user_id)
 
-    # Friends list (whatever your helper already does)
+        # Always redirect after POST
+        return redirect(url_for("main.friends"))
+
+    # -------- GET: build lists --------
+
+    # Accepted friends (you already have a helper for this)
     friends = get_users_friends(current_user.id)
 
-    # Pending requests: only ones SENT TO me (I'm user2_id)
+    # Pending requests *sent TO* the current user.
+    # We want the user who INITIATED the request (the sender),
+    # but only where current_user is part of the pair and NOT the initiator.
     pending_requests = (
         db.session.query(User)
-        .join(Friendship, Friendship.user1_id == User.id)  # user1 = sender
-        .filter(Friendship.user2_id == current_user.id)    # user2 = current user
+        .join(Friendship, User.id == Friendship.initiator_id)
         .filter(Friendship.status == "PENDING")
+        .filter(
+            (Friendship.user1_id == current_user.id) |
+            (Friendship.user2_id == current_user.id)
+        )
+        .filter(Friendship.initiator_id != current_user.id)
         .all()
     )
 
