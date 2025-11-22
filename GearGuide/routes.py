@@ -39,7 +39,12 @@ def index():
     return redirect(url_for("main.home"))
 
 @bp.route("/home", endpoint="home")
-def homePage(): return render_template("home.html")
+@login_required
+def homePage(): 
+    
+    recent_trips = get_users_trips(current_user.id)
+
+    return render_template("home.html", recent_trips=recent_trips)
 
 @bp.route("/trips", methods=["GET", "POST"], endpoint="trips")
 @login_required
