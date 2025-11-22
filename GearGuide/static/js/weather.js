@@ -2,7 +2,21 @@
 
 document.addEventListener("DOMContentLoaded", () => {
   const meta = document.getElementById("weather-data");
-  if (!meta) return; // nothing to do on pages without weather
+  if (!meta) return; // Not on a trip-detail page with weather
+
+  // --- Toggle weather suggestions section ---
+const toggleBtn = document.getElementById("toggle-weather-suggestions");
+const suggestionsWrapper = document.getElementById("weather-suggestions-wrapper");
+
+if (toggleBtn && suggestionsWrapper) {
+  toggleBtn.addEventListener("click", () => {
+    const isHidden = suggestionsWrapper.style.display === "none";
+    suggestionsWrapper.style.display = isHidden ? "block" : "none";
+    toggleBtn.textContent = isHidden
+      ? "Hide Suggestions ▲"
+      : "Show Suggestions ▼";
+  });
+}
 
   const loadingEl = document.getElementById("weather-loading");
   const errorEl = document.getElementById("weather-error");
@@ -10,13 +24,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (!loadingEl || !errorEl || !containerEl) return;
 
-  // Read data attributes
+  // Elements for weather-based packing suggestions (optional card)
+  const suggestListEl = document.getElementById("weather-pack-list");
+  const suggestEmptyEl = document.getElementById("weather-pack-empty");
+
+  // Read data attributes from the hidden meta div
   const lat = parseFloat(meta.dataset.lat);
   const lon = parseFloat(meta.dataset.lon);
   const tripStartStr = meta.dataset.start || null; // "YYYY-MM-DD"
   const tripEndStr = meta.dataset.end || null;     // "YYYY-MM-DD"
 
-  /* -------- Helpers -------- */
+  /* -------- Helper functions -------- */
 
   // Turn an ISO datetime into a normalized date key "YYYY-MM-DD" using UTC
   function toDateKeyFromISO(isoString) {
@@ -26,7 +44,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return d.toISOString().slice(0, 10);
   }
 
-  // Turn a "YYYY-MM-DD" (or ISO) into "MM/DD" for display
+  // Turn a "YYYY-MM-DD" (or ISO datetime) into "MM/DD" for display
   function formatDateMMDD(dateStrOrIso) {
     if (!dateStrOrIso) return "";
     let d;
@@ -40,7 +58,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return `${d.getUTCMonth() + 1}/${d.getUTCDate()}`;
   }
 
-  // Icons from forecast text
+  // Emoji icon from forecast text
   function getWeatherIcon(shortForecast, isDaytime) {
     if (!shortForecast) return isDaytime ? "🌤️" : "🌙";
     const s = shortForecast.toLowerCase();
@@ -54,7 +72,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return isDaytime ? "🌤️" : "🌙";
   }
 
-  // Temp color bar
+  // Color for temp bar
   function getTempColor(tempF) {
     if (tempF == null || isNaN(tempF)) return "#9ca3af"; // gray
     if (tempF <= 40) return "#3b82f6"; // blue
@@ -63,6 +81,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return "#ef4444";                 // red
   }
 
+  // Little horizontal bar that visually encodes temp
   function buildTempBar(tempF) {
     const clamped = Math.max(0, Math.min(100, tempF || 0));
     const width = clamped + "%";
@@ -91,7 +110,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return dates;
   }
 
-  /* -------- Fetch Weather -------- */
+  /* -------- Fetch Weather from backend /weather route -------- */
 
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
     loadingEl.textContent =
@@ -110,7 +129,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      const forecast = data.forecast;
+      const forecast = data.forecast || [];
 
       // Group periods by normalized date key
       const periodsByDate = {};
@@ -127,12 +146,76 @@ document.addEventListener("DOMContentLoaded", () => {
       const tripDateKeys = getTripDateKeys(tripStartStr, tripEndStr);
       let itemsRendered = 0;
 
+      /* -------- Weather-based packing suggestions -------- */
+
+      if (suggestListEl) {
+        let willRain = false;
+        let willSnow = false;
+        let veryCold = false; // <= 40°F
+        let veryHot = false;  // >= 85°F
+
+        if (tripDateKeys.length) {
+          tripDateKeys.forEach((dateKey) => {
+            const dayPeriods = periodsByDate[dateKey] || [];
+            dayPeriods.forEach((p) => {
+              const short = (p.shortForecast || "").toLowerCase();
+              const temp = p.temperature;
+
+              if (short.includes("rain") || short.includes("shower") || short.includes("drizzle")) {
+                willRain = true;
+              }
+              if (short.includes("snow") || short.includes("sleet") || short.includes("flurries")) {
+                willSnow = true;
+              }
+              if (typeof temp === "number") {
+                if (temp <= 40) veryCold = true;
+                if (temp >= 85) veryHot = true;
+              }
+            });
+          });
+        }
+
+        const suggestions = new Set();
+
+        if (willRain || willSnow) {
+          suggestions.add("Rain jacket");
+          suggestions.add("Waterproof boots or shoes");
+          suggestions.add("Extra warm socks");
+          suggestions.add("Dry bag or pack liner");
+        }
+        if (veryCold) {
+          suggestions.add("Insulated jacket");
+          suggestions.add("Gloves");
+          suggestions.add("Beanie or warm hat");
+          suggestions.add("Thermal base layers");
+        }
+        if (veryHot) {
+          suggestions.add("Sun hat");
+          suggestions.add("Sunscreen");
+          suggestions.add("Lightweight, breathable clothing");
+          suggestions.add("Electrolyte packets");
+        }
+
+        if (suggestions.size > 0) {
+          if (suggestEmptyEl) {
+            suggestEmptyEl.remove();
+          }
+          suggestions.forEach((item) => {
+            const li = document.createElement("li");
+            li.textContent = item;
+            suggestListEl.appendChild(li);
+          });
+        }
+      }
+
+      /* -------- Render per-day forecast for trip dates -------- */
+
       if (tripDateKeys.length) {
         tripDateKeys.forEach((dateKey) => {
           const dayPeriods = periodsByDate[dateKey] || [];
 
           if (!dayPeriods.length) {
-            // Optional "no forecast yet" card
+            // No forecast yet for this date (e.g., trip >7 days out)
             const block = document.createElement("div");
             block.style.marginBottom = "1rem";
             block.innerHTML = `
@@ -148,8 +231,8 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
           }
 
-          // Prefer daytime period; fallback to first
-          let best =
+          // Prefer a daytime period; fallback to the first one
+          const best =
             dayPeriods.find((p) => p.isDaytime === true) || dayPeriods[0];
 
           const icon = getWeatherIcon(best.shortForecast, best.isDaytime);
@@ -158,7 +241,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
           const block = document.createElement("div");
           block.style.marginBottom = "1rem";
-
           block.innerHTML = `
             <div style="display:flex; align-items:flex-start; gap:0.75rem;">
               <div style="font-size:1.5rem;">${icon}</div>
@@ -177,14 +259,13 @@ document.addEventListener("DOMContentLoaded", () => {
               </div>
             </div>
           `;
-
           containerEl.appendChild(block);
           itemsRendered++;
         });
       }
 
-      // If trip is beyond forecast range or no matches, show first 5 raw periods
-      if (!itemsRendered) {
+      // If trip is out of range and nothing rendered, show first few raw periods as a fallback
+      if (!itemsRendered && forecast.length) {
         const fallback = forecast.slice(0, 5);
         fallback.forEach((period) => {
           const icon = getWeatherIcon(period.shortForecast, period.isDaytime);
@@ -193,7 +274,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
           const block = document.createElement("div");
           block.style.marginBottom = "1rem";
-
           block.innerHTML = `
             <div style="display:flex; align-items:flex-start; gap:0.75rem;">
               <div style="font-size:1.5rem;">${icon}</div>
@@ -212,7 +292,6 @@ document.addEventListener("DOMContentLoaded", () => {
               </div>
             </div>
           `;
-
           containerEl.appendChild(block);
         });
       }

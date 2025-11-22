@@ -108,6 +108,7 @@
           <script src="{{ url_for('static', filename='js/weather.js') }}"></script>
         </div>
 
+
                         <!-- Packing List -->
         <div class="card" style="grid-column:1/-1">
           <h2>Packing List</h2>
@@ -156,6 +157,7 @@
                   </button>
                 </div>
               </div>
+                      
 
               <div class="field" style="margin-top: 0.5rem;">
                 <button class="btn accent" type="submit">Save list</button>
@@ -189,6 +191,31 @@
             </form>
           {% endif %}
         </div>
+        <!-- Weather-based packing suggestions -->
+<div class="card" style="grid-column:1/-1">
+  <h2>Suggested Items based on Weather</h2>
+
+  <button
+    id="toggle-weather-suggestions"
+    class="btn ghost"
+    type="button"
+    style="margin-bottom:0.75rem;"
+  >
+    Show Suggestions ▼
+  </button>
+
+  <div id="weather-suggestions-wrapper" style="display:none;">
+    <ul id="weather-pack-list" class="clean">
+      <li class="muted" id="weather-pack-empty">
+        Suggestions will appear here based on the forecast for your trip dates.
+      </li>
+    </ul>
+
+    <small class="muted">
+      These items are suggestions only. Use the "+" box above to add them to your actual packing list.
+    </small>
+  </div>
+</div>
 
         <!-- Danger Zone: Delete (host) or Leave (member) -->
         <div class="card" style="grid-column:1/-1">
