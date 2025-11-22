@@ -312,10 +312,27 @@ def viewTripPage(trip_id):
             return redirect(url_for("main.trips"))
 
     if request.method == "POST":
+        form_type = request.form.get("form_type", "").strip()
 
         # --- Delete trip (host only) ---
-        if request.form.get("delete_trip"):
+        if request.form.get("delete_trip") or form_type == "delete_trip":
             if is_host:
+                # Delete related invites first
+                db.session.query(TripInvite).filter(
+                    TripInvite.trip_id == trip.id
+                ).delete(synchronize_session=False)
+
+                # Optionally also delete pack list items if you use that
+                # from GearGuide.database import PackListItem  (already imported if needed)
+                try:
+                    from .database import PackListItem
+                    db.session.query(PackListItem).filter(
+                        PackListItem.trip_id == trip.id
+                    ).delete(synchronize_session=False)
+                except Exception:
+                    # If PackListItem isn't imported/used, just ignore
+                    pass
+
                 db.session.delete(trip)
                 db.session.commit()
                 flash("Trip deleted.", "success")
@@ -324,7 +341,7 @@ def viewTripPage(trip_id):
             return redirect(url_for("main.trips"))
 
         # --- Leave trip (secondary account) ---
-        if request.form.get("leave_trip"):
+        if request.form.get("leave_trip") or form_type == "leave_trip":
             if not is_host:
                 invite = TripInvite.query.filter_by(
                     user_id=current_user.id,
