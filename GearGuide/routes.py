@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template,redirect, url_for, request, flash
 
 from . import db
-from .models import User, Trip
+from .models import User, Trip, PackListItem
 from .auth import verify_user
 from .database import (
     User,
@@ -373,6 +373,11 @@ def viewTripPage(trip_id):
                     TripInvite.trip_id == trip.id
                 ).delete(synchronize_session=False)
 
+                # Clean up packing list items for this trip
+                db.session.query(PackListItem).filter(
+                    PackListItem.trip_id == trip.id
+                ).delete(synchronize_session=False)
+
                 db.session.delete(trip)
                 db.session.commit()
                 flash("Trip deleted.", "success")
@@ -642,6 +647,7 @@ def createTripSubmit():
     start_date_str = request.form.get("start_date")
     end_date_str = request.form.get("end_date")
     activities = request.form.getlist("activities")
+    print("DEBUG activities from form:", activities)
     notes = request.form.get("notes")
 
     if not name or not destination or not start_date_str or not end_date_str:
