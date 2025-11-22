@@ -15,6 +15,10 @@ from .database import (
     invite_user_to_trip,
     add_user,
     get_user_by_username,
+    add_pack_item,
+    get_pack_list,
+    update_pack_item_status,
+    remove_pack_item,
 )
 from werkzeug.security import generate_password_hash, check_password_hash   
 from flask_login import login_user, logout_user, current_user, login_required
@@ -314,24 +318,43 @@ def viewTripPage(trip_id):
     if request.method == "POST":
         form_type = request.form.get("form_type", "").strip()
 
+        # --- Packing list update (any member can do this) ---
+        if form_type == "packlist":
+            # 1) Update packed / not packed for existing items
+            pack_items = get_pack_list(trip.id)
+            for item in pack_items:
+                is_packed = request.form.get(f"packed_{item.id}") is not None
+                update_pack_item_status(item.id, is_packed)
+
+            # 2) Remove an item if trash button was clicked
+            remove_item_id = request.form.get("remove_item_id", "").strip()
+            if remove_item_id:
+                try:
+                    item_id = int(remove_item_id)
+                    remove_pack_item(item_id)
+                except ValueError:
+                    pass  # ignore bad id
+
+            # 3) Add custom item if provided
+            new_item_name = request.form.get("new_item_name", "").strip()
+            if new_item_name:
+                success = add_pack_item(trip.id, new_item_name)
+                if not success:
+                    flash("Could not add item (maybe it already exists for this trip).", "warning")
+                else:
+                    flash("Packing list updated.", "success")
+            else:
+                flash("Packing list updated.", "success")
+
+            return redirect(url_for("main.trip_detail", trip_id=trip.id))
+
         # --- Delete trip (host only) ---
-        if request.form.get("delete_trip") or form_type == "delete_trip":
+        if request.form.get("delete_trip"):
             if is_host:
-                # Delete related invites first
+                # Clean up invites for this trip
                 db.session.query(TripInvite).filter(
                     TripInvite.trip_id == trip.id
                 ).delete(synchronize_session=False)
-
-                # Optionally also delete pack list items if you use that
-                # from GearGuide.database import PackListItem  (already imported if needed)
-                try:
-                    from .database import PackListItem
-                    db.session.query(PackListItem).filter(
-                        PackListItem.trip_id == trip.id
-                    ).delete(synchronize_session=False)
-                except Exception:
-                    # If PackListItem isn't imported/used, just ignore
-                    pass
 
                 db.session.delete(trip)
                 db.session.commit()
@@ -341,7 +364,7 @@ def viewTripPage(trip_id):
             return redirect(url_for("main.trips"))
 
         # --- Leave trip (secondary account) ---
-        if request.form.get("leave_trip") or form_type == "leave_trip":
+        if request.form.get("leave_trip"):
             if not is_host:
                 invite = TripInvite.query.filter_by(
                     user_id=current_user.id,
@@ -387,7 +410,6 @@ def viewTripPage(trip_id):
                 user = User.query.filter_by(username=user_to_invite).first()
 
             if user:
-                # Create or reuse invite; let /trips handle acceptance
                 invite_user_to_trip(user.id, trip.id)
                 flash(f"Invited {user.username} to this trip.", "success")
             else:
@@ -412,7 +434,11 @@ def viewTripPage(trip_id):
         members_dict[m.id] = m
     members = list(members_dict.values())
 
+    # Activities as a list
     activities = trip.activities.split(",") if trip.activities else []
+
+    # 4) Packing list items for this trip
+    pack_items = get_pack_list(trip.id)
 
     return render_template(
         "trip-detail.html",
@@ -420,6 +446,7 @@ def viewTripPage(trip_id):
         activities=activities,
         members=members,
         is_host=is_host,
+        pack_items=pack_items,
     )
 
 
@@ -548,7 +575,8 @@ def createTripSubmit():
         flash("Invalid date format.", "danger")
         return redirect(url_for("main.create_trip"))
 
-    try:                                        #    search?format=json&limit=1&q={destination}")
+    # Geocode destination
+    try:
         nominatum_url = f"https://nominatim.openstreetmap.org/search?q={destination}&limit=1&format=json"
         res = requests.get(nominatum_url, headers={"User-Agent": "GearGuideApp"})
         data = res.json()
@@ -566,7 +594,6 @@ def createTripSubmit():
         lon = None
         flash("Error occurred during geocoding. {e}", "warning")
 
-    
     trip = Trip(
         host_id = current_user.id,
         name = name,
@@ -577,12 +604,74 @@ def createTripSubmit():
         end_date = end_date,
         activities = ",".join(activities),
         notes = notes
-
     )
 
     try:
         db.session.add(trip)
         db.session.commit()
+
+        # ------- NEW: seed packing list items based on activities -------
+        base_items = [
+            "Water bottle",
+            "Snacks",
+            "Weather-appropriate clothing",
+            "First aid kit",
+        ]
+
+        activity_items = {
+            "Hiking": [
+                "Hiking boots",
+                "Daypack",
+                "Trail map or GPS",
+            ],
+            "Camping": [
+                "Tent",
+                "Sleeping bag",
+                "Sleeping pad",
+                "Headlamp or flashlight",
+            ],
+            "Fishing": [
+                "Fishing rod",
+                "Tackle box",
+                "Fishing license",
+            ],
+            "Kayaking": [
+                "Life jacket",
+                "Dry bag",
+                "Water shoes",
+            ],
+            "Canoeing": [
+                "Life jacket",
+                "Dry bag",
+                "Water shoes",
+            ],
+            "Biking": [
+                "Bike",
+                "Helmet",
+                "Bike repair kit",
+            ],
+            "Swimming": [
+                "Swimsuit",
+                "Towel",
+                "Sunscreen",
+            ],
+            "Climbing": [
+                "Climbing shoes",
+                "Harness",
+                "Chalk bag",
+                "Helmet",
+            ],
+        }
+
+        # Build list without duplicates
+        items_to_add = set(base_items)
+        for act in activities:
+            items_to_add.update(activity_items.get(act, []))
+
+        # Save items to DB
+        for item_name in items_to_add:
+            add_pack_item(trip.id, item_name)
+        # ---------------------------------------------------------------
 
         flash("Trip created successfully!", "success")
         return redirect(url_for("main.trips"))
