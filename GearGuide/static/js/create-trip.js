@@ -3,14 +3,29 @@ const todayISO = new Date().toISOString().split("T")[0];
 const startEl = document.getElementById("start_date");
 const endEl = document.getElementById("end_date");
 
+function addOneDay(isoStr) {
+  const d = new Date(isoStr);
+  d.setDate(d.getDate() + 1);
+  return d.toISOString().split("T")[0];
+}
+
 if (startEl && endEl) {
   startEl.min = todayISO;
-  endEl.min = todayISO;
+  endEl.min = addOneDay(todayISO);
 
   startEl.addEventListener("change", () => {
-    const s = startEl.value || todayISO;
-    endEl.min = s;
-    if (endEl.value && endEl.value < s) endEl.value = s;
+    if (!startEl.value) return;
+
+    const start = startEl.value;
+    const minEnd = addOneDay(start);
+
+    // end date must be AT LEAST 1 day after start date
+    endEl.min = minEnd;
+
+    // If currently selected end date is invalid, fix it automatically
+    if (!endEl.value || endEl.value < minEnd) {
+      endEl.value = minEnd;
+    }
   });
 }
 

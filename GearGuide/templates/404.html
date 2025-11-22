@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Page Not Found · GearGuide{% endblock %}
+
+{% block content %}
+<section class="center-col" style="text-align:center; padding:3rem 1rem;">
+  <h1 style="font-size:3rem; margin-bottom:1rem;">404</h1>
+  <p class="muted" style="margin-bottom:1.5rem;">
+    Looks like this page wandered off the trail.
+  </p>
+  <a class="btn accent" href="{{ url_for('main.home') }}">Back to Home</a>
+</section>
+{% endblock %}

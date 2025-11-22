@@ -39,4 +39,9 @@ def create_app():
     from .weather_route import bp as weather_bp
     app.register_blueprint(weather_bp)
 
+    from flask import render_template
+    @app.errorhandler(404)
+    def not_found(error):
+        return render_template("404.html"), 404
+
     return app
