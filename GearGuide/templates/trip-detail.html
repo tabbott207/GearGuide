@@ -81,11 +81,31 @@
         </div>
         {% endif %}
 
-        <!-- Map & Weather (placeholder) -->
+                <!-- Weather -->
         <div class="card" style="grid-column:1/-1">
-          <h2>Map &amp; Weather</h2>
-          <div class="map-placeholder">Map / Weather widget placeholder</div>
-          <small class="muted">Backend team can embed a real map or weather block here.</small>
+          <h2>Weather Forecast</h2>
+          <small class="muted" style="display:block; margin-bottom:1rem;">
+            Forecast data is provided by the National Weather Service and typically
+            extends about 7 days out. Trips beyond that range may show limited or no forecast.
+          </small>
+
+          <div id="weather-loading" class="muted" style="margin-top:0.5rem;">
+            Loading weather…
+          </div>
+          <div id="weather-error" class="muted" style="display:none; color:#b91c1c;"></div>
+
+          <div id="weather-container" style="display:none;"></div>
+
+          <!-- Trip data passed to weather.js via data-* attributes -->
+          <div id="weather-data"
+               data-lat="{{ trip.lat }}"
+               data-lon="{{ trip.lon }}"
+               data-start="{{ trip.start_date }}"
+               data-end="{{ trip.end_date }}">
+          </div>
+
+          <!-- External JS handles everything -->
+          <script src="{{ url_for('static', filename='js/weather.js') }}"></script>
         </div>
 
                         <!-- Packing List -->
@@ -138,7 +158,7 @@
               </div>
 
               <div class="field" style="margin-top: 0.5rem;">
-                <button class="btn accent" type="submit">Save packing list</button>
+                <button class="btn accent" type="submit">Save list</button>
               </div>
             </form>
           {% else %}
