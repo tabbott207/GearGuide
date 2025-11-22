@@ -83,16 +83,16 @@ def viewTripPage(trip_id):
     if(request.method == "POST"):
         user_to_invite = request.form.get("user_to_invite")
 
-    if(user_to_invite is str and user_to_invite != ''):
-        user = None
+        if(user_to_invite is str and user_to_invite != ''):
+            user = None
 
-        if('@' in user_to_invite):
-            user = User.query.get({'email':user_to_invite})
-        else:
-            user = User.query.get({'username':user_to_invite})
+            if('@' in user_to_invite):
+                user = User.query.get({'email':user_to_invite})
+            else:
+                user = User.query.get({'username':user_to_invite})
 
-        if(user is not None):
-            invite_user_to_trip(user.id, trip.id)
+            if(user is not None):
+                invite_user_to_trip(user.id, trip.id)
     
     activities = trip.activities.split(",") if trip.activities else []
     
