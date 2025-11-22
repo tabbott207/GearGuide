@@ -58,7 +58,8 @@ def myFriendsPage():
                 user = User.query.filter_by(username=friend_identifier).first()
 
             if user is not None:
-                send_friend_request(user.id, current_user.id)
+                # user1 = sender (current user), user2 = receiver (the friend)
+                send_friend_request(current_user.id, user.id)
 
         # 2) Accept / deny pending friend request
         friend_request_id = request.form.get("friend_request_id", "").strip()
@@ -72,6 +73,7 @@ def myFriendsPage():
 
             if other_user_id is not None:
                 status_upper = friend_request_status.upper()
+                # user1 = sender (other user), user2 = receiver (current user)
                 if status_upper == "ACCPET":
                     accept_friend_request(other_user_id, current_user.id)
                 elif status_upper == "DENY":
@@ -87,27 +89,16 @@ def myFriendsPage():
                 other_user_id = None
 
             if other_user_id is not None:
-                # use current_user.id + other_user_id; remove_friend can be symmetric
                 remove_friend(current_user.id, other_user_id)
 
+    # Friends list (whatever your helper already does)
     friends = get_users_friends(current_user.id)
 
+    # Pending requests: only ones SENT TO me (I'm user2_id)
     pending_requests = (
         db.session.query(User)
-        .join(
-            Friendship,
-            or_(
-                Friendship.user1_id == User.id,
-                Friendship.user2_id == User.id,
-            ),
-        )
-        .filter(
-            or_(
-                Friendship.user1_id == current_user.id,
-                Friendship.user2_id == current_user.id,
-            )
-        )
-        .filter(User.id != current_user.id)
+        .join(Friendship, Friendship.user1_id == User.id)  # user1 = sender
+        .filter(Friendship.user2_id == current_user.id)    # user2 = current user
         .filter(Friendship.status == "PENDING")
         .all()
     )
