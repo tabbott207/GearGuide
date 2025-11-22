@@ -50,6 +50,7 @@ def myTripsPage():
         # Handle Accept / Decline for trip invites
         invite_trip_id = request.form.get("invite_trip_id", "").strip()
         invite_action = request.form.get("invite_action", "").strip().upper()
+        
 
         if invite_trip_id and invite_action in {"ACCEPT", "DECLINE"}:
             try:
@@ -317,6 +318,15 @@ def viewTripPage(trip_id):
 
     if request.method == "POST":
         form_type = request.form.get("form_type", "").strip()
+        # --- Update trip notes (any member can edit) ---
+        if form_type == "notes":
+            new_notes = request.form.get("notes", "").strip()
+            trip.notes = new_notes
+            db.session.commit()
+            flash("Notes updated.", "success")
+            return redirect(url_for("main.trip_detail", trip_id=trip.id))
+
+        # ... keep your existing delete / leave / member_remove / invite / packlist logic below ...
 
         # --- Packing list update (any member can do this) ---
         if form_type == "packlist":

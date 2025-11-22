@@ -10,7 +10,7 @@
       <p class="helper">Trip not found.</p>
     {% else %}
       <div class="grid">
-        <!-- Overview -->
+                                <!-- Overview -->
         <div class="card">
           <h2>Overview</h2>
           <div><strong>Destination:</strong> {{ trip.destination or '-' }}</div>
@@ -22,8 +22,24 @@
               -
             {% endif %}
           </div>
-        </div>
 
+          <div style="margin-top:0.75rem;">
+            <strong>Notes:</strong><br>
+
+            <form method="post" action="{{ url_for('main.trip_detail', trip_id=trip.id) }}" style="margin-top:0.25rem;">
+              <input type="hidden" name="form_type" value="notes">
+              <textarea
+                id="notes"
+                name="notes"
+                rows="4"
+                placeholder="Add trip details, reminders, or special plans…"
+                style="width:100%; resize:vertical;">{{ trip.notes or '' }}</textarea>
+              <button class="btn accent" type="submit" style="margin-top:0.5rem;">
+                Save notes
+              </button>
+            </form>
+          </div>
+        </div>
         <!-- Members -->
         <div class="card">
           <h2>Members</h2>
