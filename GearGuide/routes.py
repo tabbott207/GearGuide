@@ -186,10 +186,6 @@ def accountPage():
                 flash("Current password is incorrect.", "danger")
                 return redirect(url_for("main.account"))
 
-            if len(new_password) < 8:
-                flash("New password must be at least 8 characters long.", "danger")
-                return redirect(url_for("main.account"))
-
             if new_password != confirm_password:
                 flash("New password and confirmation do not match.", "danger")
                 return redirect(url_for("main.account"))
@@ -198,6 +194,31 @@ def accountPage():
             db.session.commit()
             flash("Password updated successfully.", "success")
             return redirect(url_for("main.account"))
+
+        # -------- DELETE ACCOUNT FORM --------
+        elif form_type == "delete":
+            delete_password = request.form.get("delete_password", "")
+
+            if not delete_password:
+                flash("Enter your password to delete your account.", "danger")
+                return redirect(url_for("main.account"))
+
+            # Verify password
+            if not check_password_hash(current_user.password_hash, delete_password):
+                flash("Incorrect password. Account not deleted.", "danger")
+                return redirect(url_for("main.account"))
+
+            # Delete account entirely
+            user_id = current_user.id
+            logout_user()
+
+            user = User.query.get(user_id)
+            if user:
+                db.session.delete(user)
+                db.session.commit()
+
+            flash("Your account has been deleted.", "success")
+            return redirect(url_for("main.home"))
 
     # GET
     return render_template("account.html")

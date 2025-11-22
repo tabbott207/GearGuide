@@ -59,7 +59,7 @@
           id="new_password"
           name="new_password"
           type="password"
-          placeholder="At least 8 characters">
+          placeholder="Enter new password">
       </div>
 
       <div class="field">
@@ -73,6 +73,34 @@
 
       <div class="field">
         <button class="btn accent" type="submit">Update password</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Delete account box -->
+  <div class="card" style="margin-top: 1rem; border: 2px solid #d9534f;">
+    <h2 style="color: #d9534f;">Delete Account</h2>
+    <p class="helper" style="margin-bottom: 1rem;">
+      This action is permanent. All your trips, invites, friendships, and data will be removed.
+    </p>
+
+    <form method="post" action="{{ url_for('main.account') }}">
+      <input type="hidden" name="form_type" value="delete">
+
+      <div class="field">
+        <label for="delete_password">Confirm password</label>
+        <input
+          id="delete_password"
+          name="delete_password"
+          type="password"
+          placeholder="Enter password to confirm"
+          required>
+      </div>
+
+      <div class="field">
+        <button class="btn danger" type="submit" style="background:#d9534f; color:white;">
+          Delete My Account
+        </button>
       </div>
     </form>
   </div>
