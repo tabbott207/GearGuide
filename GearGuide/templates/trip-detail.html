@@ -61,15 +61,13 @@
                     <small class="muted">{{ m.email or '' }}</small>
                   </div>
 
-                  {% if is_host %}
-                    {% if m.id != trip.host_id %}
-                      <form method="post"
-                            action="{{ url_for('main.trip_detail', trip_id=trip.id) }}"
-                            style="margin:0;">
-                        <input type="hidden" name="member_remove_id" value="{{ m.id }}">
-                        <button class="btn ghost" type="submit">Remove</button>
-                      </form>
-                    {% endif %}
+                  {% if is_host and m.id != trip.host_id %}
+                    <form method="post"
+                          action="{{ url_for('main.trip_detail', trip_id=trip.id) }}"
+                          style="margin:0;">
+                      <input type="hidden" name="member_remove_id" value="{{ m.id }}">
+                      <button class="btn ghost" type="submit">Remove</button>
+                    </form>
                   {% endif %}
                 </li>
               {% endfor %}
@@ -83,13 +81,63 @@
         {% if is_host %}
           <div class="card">
             <h2>Invite to Trip</h2>
+
+            <!-- Invite by email or username -->
             <form method="post" action="{{ url_for('main.trip_detail', trip_id=trip.id) }}">
               <div class="field">
                 <label for="user_to_invite">Email or username</label>
-                <input id="user_to_invite" name="user_to_invite" placeholder="friend@example.com">
+                <input id="user_to_invite"
+                       name="user_to_invite"
+                       placeholder="friend@example.com">
               </div>
               <button class="btn accent" type="submit">Invite</button>
             </form>
+
+            <!-- Invite from friends list -->
+            {% if friends_for_invite and friends_for_invite|length %}
+              <hr style="margin:1rem 0; border:none; border-top:1px solid #e5e7eb;">
+              <h3 style="margin-bottom:0.25rem;">Invite a Friend</h3>
+              <p class="muted" style="margin-bottom:0.75rem;">
+                Choose from your friends list to quickly invite them to this trip.
+              </p>
+
+              <ul class="clean">
+                {% for f in friends_for_invite %}
+                  {% set label = f.username or f.name or f.email or '' %}
+                  <li style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+                    <div class="avatar">
+                      {{ (label[0]|upper) if label else 'F' }}
+                    </div>
+
+                    <div class="vstack" style="min-width:0;">
+                      <strong>{{ label }}</strong>
+                      <small class="muted">{{ f.email or '' }}</small>
+                    </div>
+
+                    <span class="spacer"></span>
+
+                    {% if f.id in pending_invites_to_this_trip %}
+                      <span class="badge" style="background:#e5e7eb; color:#374151;">
+                        Pending
+                      </span>
+                    {% else %}
+                      <form method="post"
+                            action="{{ url_for('main.trip_detail', trip_id=trip.id) }}"
+                            style="margin:0;">
+                        <input type="hidden" name="friend_to_invite_id" value="{{ f.id }}">
+                        <button class="btn ghost" type="submit">
+                          Invite
+                        </button>
+                      </form>
+                    {% endif %}
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="helper" style="margin-top:0.75rem;">
+                No friends available to invite yet. Add friends from the Friends page first.
+              </p>
+            {% endif %}
           </div>
         {% endif %}
 

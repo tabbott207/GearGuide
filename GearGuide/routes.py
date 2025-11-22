@@ -326,6 +326,7 @@ def viewTripPage(trip_id):
 
     if request.method == "POST":
         form_type = request.form.get("form_type", "").strip()
+
         # --- Update trip notes (any member can edit) ---
         if form_type == "notes":
             new_notes = request.form.get("notes", "").strip()
@@ -333,8 +334,6 @@ def viewTripPage(trip_id):
             db.session.commit()
             flash("Notes updated.", "success")
             return redirect(url_for("main.trip_detail", trip_id=trip.id))
-
-        # ... keep your existing delete / leave / member_remove / invite / packlist logic below ...
 
         # --- Packing list update (any member can do this) ---
         if form_type == "packlist":
@@ -417,9 +416,39 @@ def viewTripPage(trip_id):
                     flash("Member removed from trip.", "success")
             return redirect(url_for("main.trip_detail", trip_id=trip.id))
 
-        # --- Invite user to trip (host only) ---
-        user_to_invite = request.form.get("user_to_invite", "").strip()
+        # --- Invite friend from list (host only) ---
+        friend_to_invite_id = request.form.get("friend_to_invite_id", "").strip()
+        if friend_to_invite_id and is_host:
+            try:
+                friend_id = int(friend_to_invite_id)
+            except ValueError:
+                friend_id = None
 
+            if friend_id is not None:
+                user = User.query.get(friend_id)
+                if not user:
+                    flash("User not found.", "danger")
+                    return redirect(url_for("main.trip_detail", trip_id=trip.id))
+
+                # Check for existing invite / membership
+                existing_invite = TripInvite.query.filter_by(
+                    user_id=user.id,
+                    trip_id=trip.id
+                ).first()
+
+                if existing_invite:
+                    if existing_invite.accepted:
+                        flash(f"{user.username} is already on this trip.", "info")
+                    else:
+                        flash(f"An invite to {user.username} is already pending.", "info")
+                else:
+                    invite_user_to_trip(user.id, trip.id)
+                    flash(f"Invited {user.username} to this trip.", "success")
+
+            return redirect(url_for("main.trip_detail", trip_id=trip.id))
+
+        # --- Invite user to trip by email/username (host only) ---
+        user_to_invite = request.form.get("user_to_invite", "").strip()
         if user_to_invite and is_host:
             # find user by email or username
             if "@" in user_to_invite:
@@ -427,11 +456,26 @@ def viewTripPage(trip_id):
             else:
                 user = User.query.filter_by(username=user_to_invite).first()
 
-            if user:
+            if not user:
+                flash("User not found.", "danger")
+                return redirect(url_for("main.trip_detail", trip_id=trip.id))
+
+            # Check for existing invite / membership
+            existing_invite = TripInvite.query.filter_by(
+                user_id=user.id,
+                trip_id=trip.id
+            ).first()
+
+            if existing_invite:
+                if existing_invite.accepted:
+                    flash(f"{user.username} is already on this trip.", "info")
+                else:
+                    flash(f"An invite to {user.username} is already pending.", "info")
+            else:
                 invite_user_to_trip(user.id, trip.id)
                 flash(f"Invited {user.username} to this trip.", "success")
-            else:
-                flash("User not found.", "danger")
+
+            return redirect(url_for("main.trip_detail", trip_id=trip.id))
 
     # 3) Build members list: host + accepted invitees
     host_user = User.query.get(trip.host_id)
@@ -458,6 +502,22 @@ def viewTripPage(trip_id):
     # 4) Packing list items for this trip
     pack_items = get_pack_list(trip.id)
 
+    # 5) Friends you can invite (host only; exclude existing members)
+    friends_for_invite = []
+    if is_host:
+        all_friends = get_users_friends(current_user.id)
+        existing_member_ids = set(u.id for u in members)
+        friends_for_invite = [f for f in all_friends if f.id not in existing_member_ids]
+
+    # 6) Pending invites to this trip (for "Pending" label in UI)
+    pending_invites_to_this_trip = set()
+    if is_host:
+        pending_invites = TripInvite.query.filter_by(
+            trip_id=trip.id,
+            accepted=False
+        ).all()
+        pending_invites_to_this_trip = {inv.user_id for inv in pending_invites}
+
     return render_template(
         "trip-detail.html",
         trip=trip,
@@ -465,6 +525,8 @@ def viewTripPage(trip_id):
         members=members,
         is_host=is_host,
         pack_items=pack_items,
+        friends_for_invite=friends_for_invite,
+        pending_invites_to_this_trip=pending_invites_to_this_trip,
     )
 
 
