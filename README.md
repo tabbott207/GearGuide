@@ -41,7 +41,7 @@ pip install .
 Mac/Linux
 ```bash
 export FLASK_APP=GearGuide
-flask db upgrade
+python -m flask db upgrade
 ```
 
 OR
@@ -49,7 +49,7 @@ OR
 Windows
 ```powershell
 $env:FLASK_APP="GearGuide"
-flask db upgrade
+python -m flask db upgrade
 ```
 ### 5. Run the app
 ```bash
